@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Check, X, AlertTriangle, Trash2, Edit3 } from 'lucide-react';
+import { Check, AlertTriangle, Trash2, Edit3 } from 'lucide-react';
 import { cn, vibrate } from '@/lib/utils';
 import { useTranslation } from '@/hooks/useTranslation';
 import { useSwipeGesture } from '@/hooks/useSwipeGesture';
@@ -33,28 +33,11 @@ export function GroceryItem({
   showActions = true,
   compact = false,
 }: GroceryItemProps) {
-  const { t, isRTL } = useTranslation();
+  const { t } = useTranslation();
   const { getCategory } = useCategories();
   const { isFavorite, toggle } = useFavoriteButton(item.name);
 
   const category = getCategory(item.categoryId);
-
-  const { handlers, state } = useSwipeGesture({
-    threshold: 80,
-    onSwipeLeft: () => {
-      vibrate(15);
-      if (item.status === 'pending') {
-        onMarkOutOfStock();
-      }
-    },
-    onSwipeRight: () => {
-      vibrate(15);
-      onDelete();
-    },
-    // No onTap - tapping in list view should NOT mark as checked
-    // That behavior is only for shopping mode
-    disabled: item.status === 'checked',
-  });
 
   const handleFavoriteToggle = () => {
     // Use the local toggle to update both storage and UI state
@@ -74,48 +57,13 @@ export function GroceryItem({
         isOutOfStock && 'border-orange-500/50'
       )}
     >
-      {/* Swipe action backgrounds */}
-      {state.isDragging && (
-        <>
-          {/* Left swipe - Out of stock (shows on right in LTR) */}
-          <div
-            className={cn(
-              'absolute inset-y-0 flex items-center justify-end px-4',
-              'bg-gradient-to-l from-orange-500 to-orange-600',
-              isRTL ? 'start-0 justify-start' : 'end-0'
-            )}
-            style={{ width: Math.abs(state.translateX) }}
-          >
-            <AlertTriangle size={24} className="text-white" />
-          </div>
-          
-          {/* Right swipe - Delete (shows on left in LTR) */}
-          <div
-            className={cn(
-              'absolute inset-y-0 flex items-center px-4',
-              'bg-gradient-to-r from-red-500 to-red-600',
-              isRTL ? 'end-0 justify-end' : 'start-0'
-            )}
-            style={{ width: Math.abs(state.translateX) }}
-          >
-            <Trash2 size={24} className="text-white" />
-          </div>
-        </>
-      )}
-
       {/* Main content */}
       <div
-        {...handlers}
         className={cn(
           'relative flex items-center gap-3 p-4',
           'bg-[var(--card)]',
-          'transition-transform duration-200',
-          'cursor-pointer select-none',
           compact ? 'py-3' : 'py-4'
         )}
-        style={{
-          transform: `translateX(${state.translateX}px)`,
-        }}
       >
         {/* Checkbox indicator */}
         <div
@@ -170,7 +118,7 @@ export function GroceryItem({
         </div>
 
         {/* Action buttons - always visible */}
-        {showActions && !state.isDragging && (
+        {showActions && (
           <div 
             className="flex items-center gap-1"
             onTouchStart={(e) => e.stopPropagation()}
