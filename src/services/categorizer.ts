@@ -84,13 +84,19 @@ export async function categorizeMultipleItems(
   
   // First, do keyword matching for all items (immediate)
   for (const name of itemNames) {
-    const keywordResult = categorizeByKeyword(name);
+    const parsed = parseQuantityFromName(name);
+    const cleanName = parsed.name;
+    const explicitQuantity = parsed.quantity;
+    const explicitUnit = parsed.unit as UnitType | undefined;
+    
+    const keywordResult = categorizeByKeyword(cleanName);
     results.set(name.toLowerCase(), {
       categoryId: keywordResult.categoryId,
-      unit: keywordResult.unit,
-      quantity: keywordResult.quantity,
+      unit: explicitUnit || keywordResult.unit,
+      quantity: explicitQuantity ?? keywordResult.quantity,
       confidence: keywordResult.confidence,
       source: 'keyword',
+      parsedName: cleanName,
     });
   }
   
@@ -105,13 +111,14 @@ export async function categorizeMultipleItems(
       try {
         const aiResults = await categorizeMultipleWithAI(lowConfidenceItems);
         
-        aiResults.forEach((aiResult, name) => {
-          results.set(name, {
+        aiResults.forEach((aiResult, originalName) => {
+          results.set(originalName, {
             categoryId: aiResult.categoryId,
             unit: aiResult.unit,
             quantity: aiResult.quantity,
             confidence: aiResult.confidence,
             source: 'ai',
+            parsedName: aiResult.parsedName,
           });
         });
       } catch (error) {
