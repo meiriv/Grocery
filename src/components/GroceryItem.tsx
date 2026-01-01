@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React from 'react';
 import { Check, X, AlertTriangle, Trash2, Edit3 } from 'lucide-react';
 import { cn, vibrate } from '@/lib/utils';
 import { useTranslation } from '@/hooks/useTranslation';
@@ -36,9 +36,8 @@ export function GroceryItem({
   compact = false,
 }: GroceryItemProps) {
   const { t, isRTL } = useTranslation();
-  const { getCategoryDisplayName, getCategory } = useCategories();
+  const { getCategory } = useCategories();
   const { isFavorite, toggle } = useFavoriteButton(item.name);
-  const [showActionsMenu, setShowActionsMenu] = useState(false);
 
   const category = getCategory(item.categoryId);
 
@@ -54,10 +53,8 @@ export function GroceryItem({
       vibrate(15);
       onDelete();
     },
-    onTap: () => {
-      vibrate(10);
-      onToggleChecked();
-    },
+    // No onTap - tapping in list view should NOT mark as checked
+    // That behavior is only for shopping mode
     disabled: item.status === 'checked',
   });
 
@@ -177,23 +174,17 @@ export function GroceryItem({
           </div>
         </div>
 
-        {/* Action buttons - shown on hover */}
+        {/* Action buttons - always visible on mobile, hover reveals more on desktop */}
         {showActions && !state.isDragging && (
-          <div 
-            className={cn(
-              'flex items-center gap-1',
-              'opacity-0 transition-opacity duration-200',
-              showActionsMenu && 'opacity-100'
-            )}
-            onMouseEnter={() => setShowActionsMenu(true)}
-            onMouseLeave={() => setShowActionsMenu(false)}
-          >
+          <div className="flex items-center gap-1">
+            {/* Favorite - always visible */}
             <FavoriteButton
               isFavorite={isFavorite}
               onToggle={handleFavoriteToggle}
               size="sm"
             />
             
+            {/* Edit - always visible on mobile, hover on desktop */}
             {onEdit && (
               <button
                 onClick={(e) => {
@@ -207,6 +198,7 @@ export function GroceryItem({
               </button>
             )}
             
+            {/* Delete - always visible */}
             <button
               onClick={(e) => {
                 e.stopPropagation();
@@ -219,22 +211,6 @@ export function GroceryItem({
               <Trash2 size={18} />
             </button>
           </div>
-        )}
-        
-        {/* Delete button - always visible for easy access */}
-        {showActions && !state.isDragging && !showActionsMenu && (
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              vibrate(10);
-              onDelete();
-            }}
-            onMouseEnter={() => setShowActionsMenu(true)}
-            className="touch-target p-2 text-[var(--muted-foreground)] hover:text-red-500 transition-colors"
-            aria-label={t.common.delete}
-          >
-            <Trash2 size={18} />
-          </button>
         )}
       </div>
     </div>

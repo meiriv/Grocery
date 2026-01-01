@@ -43,3 +43,4 @@ Thumbs.db
 # PWA
 public/sw.js.map
 
+.env*.local
