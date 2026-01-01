@@ -13,6 +13,7 @@ import { Modal, ConfirmDialog } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Toggle } from '@/components/ui/Toggle';
+import { APP_VERSION } from '@/lib/version';
 
 export default function SettingsPage() {
   const { t } = useTranslation();
@@ -221,7 +222,7 @@ export default function SettingsPage() {
             <div className="space-y-2 text-sm text-[var(--muted-foreground)]">
               <div className="flex justify-between">
                 <span>{t.settings.version}</span>
-                <span>1.0.0</span>
+                <span>v{APP_VERSION}</span>
               </div>
             </div>
           </section>
