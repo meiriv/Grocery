@@ -14,7 +14,6 @@ interface CategoryGroupProps {
   onMarkOutOfStock: (itemId: string) => void;
   onDelete: (itemId: string) => void;
   onEdit?: (itemId: string) => void;
-  onToggleFavorite?: (item: GroceryItemType) => void;
   mode?: 'default' | 'shopping';
   collapsible?: boolean;
   showEmptyCategories?: boolean;
@@ -26,7 +25,6 @@ export function CategoryGroup({
   onMarkOutOfStock,
   onDelete,
   onEdit,
-  onToggleFavorite,
   mode = 'default',
   collapsible = true,
   showEmptyCategories = false,
@@ -125,9 +123,6 @@ export function CategoryGroup({
                       onMarkOutOfStock={() => onMarkOutOfStock(item.id)}
                       onDelete={() => onDelete(item.id)}
                       onEdit={onEdit ? () => onEdit(item.id) : undefined}
-                      onToggleFavorite={
-                        onToggleFavorite ? () => onToggleFavorite(item) : undefined
-                      }
                       showCategory={false}
                     />
                   )
@@ -148,7 +143,6 @@ interface FlatListProps {
   onMarkOutOfStock: (itemId: string) => void;
   onDelete: (itemId: string) => void;
   onEdit?: (itemId: string) => void;
-  onToggleFavorite?: (item: GroceryItemType) => void;
   mode?: 'default' | 'shopping';
 }
 
@@ -158,7 +152,6 @@ export function FlatList({
   onMarkOutOfStock,
   onDelete,
   onEdit,
-  onToggleFavorite,
   mode = 'default',
 }: FlatListProps) {
   return (
@@ -179,9 +172,6 @@ export function FlatList({
             onMarkOutOfStock={() => onMarkOutOfStock(item.id)}
             onDelete={() => onDelete(item.id)}
             onEdit={onEdit ? () => onEdit(item.id) : undefined}
-            onToggleFavorite={
-              onToggleFavorite ? () => onToggleFavorite(item) : undefined
-            }
             showCategory={true}
           />
         )

@@ -18,7 +18,6 @@ interface GroceryItemProps {
   onMarkOutOfStock: () => void;
   onDelete: () => void;
   onEdit?: () => void;
-  onToggleFavorite?: () => void;
   showCategory?: boolean;
   showActions?: boolean;
   compact?: boolean;
@@ -30,7 +29,6 @@ export function GroceryItem({
   onMarkOutOfStock,
   onDelete,
   onEdit,
-  onToggleFavorite,
   showCategory = true,
   showActions = true,
   compact = false,
@@ -59,11 +57,8 @@ export function GroceryItem({
   });
 
   const handleFavoriteToggle = () => {
-    if (onToggleFavorite) {
-      onToggleFavorite();
-    } else {
-      toggle(item);
-    }
+    // Use the local toggle to update both storage and UI state
+    toggle(item);
   };
 
   const isChecked = item.status === 'checked';

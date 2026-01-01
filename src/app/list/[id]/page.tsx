@@ -6,7 +6,6 @@ import { ArrowLeft, ShoppingBag, Share2, MoreVertical, Trash2, Edit3, CheckCircl
 import { cn } from '@/lib/utils';
 import { useTranslation } from '@/hooks/useTranslation';
 import { useGroceryList } from '@/hooks/useGroceryList';
-import { useFavorites } from '@/hooks/useFavorites';
 import { BottomNav } from '@/components/BottomNav';
 import { FloatingAddButton } from '@/components/FloatingAddButton';
 import { SmartInput } from '@/components/SmartInput';
@@ -42,7 +41,6 @@ export default function ListPage() {
     updateListName,
     deleteList,
   } = useGroceryList(id);
-  const { toggleFavorite } = useFavorites();
 
   const [showAddInput, setShowAddInput] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
@@ -122,10 +120,6 @@ export default function ListPage() {
       updateListName(newListName.trim());
       setEditingListName(false);
     }
-  };
-
-  const handleToggleFavorite = (item: GroceryItem) => {
-    toggleFavorite(item);
   };
 
   if (isLoading) {
@@ -270,7 +264,6 @@ export default function ListPage() {
                 onMarkOutOfStock={markOutOfStock}
                 onDelete={removeItem}
                 onEdit={handleEditItem}
-                onToggleFavorite={handleToggleFavorite}
               />
             )}
 
@@ -289,7 +282,6 @@ export default function ListPage() {
                   onMarkOutOfStock={markOutOfStock}
                   onDelete={removeItem}
                   onEdit={handleEditItem}
-                  onToggleFavorite={handleToggleFavorite}
                   collapsible={false}
                 />
               </div>
