@@ -30,6 +30,16 @@ export function FavoriteButton({
 
   const handleClick = (e: React.MouseEvent) => {
     e.stopPropagation();
+    e.preventDefault();
+    if (!disabled) {
+      vibrate(10);
+      onToggle();
+    }
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
     if (!disabled) {
       vibrate(10);
       onToggle();
@@ -40,6 +50,7 @@ export function FavoriteButton({
     <button
       type="button"
       onClick={handleClick}
+      onTouchEnd={handleTouchEnd}
       disabled={disabled}
       className={cn(
         'touch-target flex items-center gap-1.5',

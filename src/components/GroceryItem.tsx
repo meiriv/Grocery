@@ -174,9 +174,14 @@ export function GroceryItem({
           </div>
         </div>
 
-        {/* Action buttons - always visible on mobile, hover reveals more on desktop */}
+        {/* Action buttons - always visible */}
         {showActions && !state.isDragging && (
-          <div className="flex items-center gap-1">
+          <div 
+            className="flex items-center gap-1"
+            onTouchStart={(e) => e.stopPropagation()}
+            onTouchMove={(e) => e.stopPropagation()}
+            onTouchEnd={(e) => e.stopPropagation()}
+          >
             {/* Favorite - always visible */}
             <FavoriteButton
               isFavorite={isFavorite}
@@ -184,14 +189,22 @@ export function GroceryItem({
               size="sm"
             />
             
-            {/* Edit - always visible on mobile, hover on desktop */}
+            {/* Edit - always visible */}
             {onEdit && (
               <button
                 onClick={(e) => {
                   e.stopPropagation();
+                  e.preventDefault();
+                  vibrate(10);
                   onEdit();
                 }}
-                className="touch-target p-2 text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-colors"
+                onTouchEnd={(e) => {
+                  e.stopPropagation();
+                  e.preventDefault();
+                  vibrate(10);
+                  onEdit();
+                }}
+                className="touch-target p-2 text-[var(--muted-foreground)] hover:text-[var(--foreground)] active:text-[var(--foreground)] transition-colors"
                 aria-label={t.common.edit}
               >
                 <Edit3 size={18} />
@@ -202,10 +215,17 @@ export function GroceryItem({
             <button
               onClick={(e) => {
                 e.stopPropagation();
+                e.preventDefault();
                 vibrate(10);
                 onDelete();
               }}
-              className="touch-target p-2 text-[var(--muted-foreground)] hover:text-red-500 transition-colors"
+              onTouchEnd={(e) => {
+                e.stopPropagation();
+                e.preventDefault();
+                vibrate(10);
+                onDelete();
+              }}
+              className="touch-target p-2 text-[var(--muted-foreground)] hover:text-red-500 active:text-red-500 transition-colors"
               aria-label={t.common.delete}
             >
               <Trash2 size={18} />
