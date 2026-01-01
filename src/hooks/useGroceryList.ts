@@ -39,6 +39,13 @@ export function useGroceryList(listId: string | null) {
     setList(updatedList);
   }, []);
 
+  // Check if item already exists in list (case-insensitive)
+  const findExistingItem = useCallback((name: string): GroceryItem | undefined => {
+    if (!list) return undefined;
+    const normalizedName = name.trim().toLowerCase();
+    return list.items.find(item => item.name.toLowerCase() === normalizedName);
+  }, [list]);
+
   // Add item to list
   const addItem = useCallback((
     name: string,
@@ -48,8 +55,14 @@ export function useGroceryList(listId: string | null) {
       unit?: UnitType;
       price?: number;
     }
-  ) => {
-    if (!list) return null;
+  ): { item: GroceryItem | null; isDuplicate: boolean; existingItem?: GroceryItem } => {
+    if (!list) return { item: null, isDuplicate: false };
+    
+    // Check for duplicate
+    const existingItem = findExistingItem(name);
+    if (existingItem) {
+      return { item: null, isDuplicate: true, existingItem };
+    }
     
     // Auto-categorize if no category provided
     const categorization = options?.categoryId 
@@ -77,8 +90,8 @@ export function useGroceryList(listId: string | null) {
     };
     
     persistList(updatedList);
-    return newItem;
-  }, [list, persistList]);
+    return { item: newItem, isDuplicate: false };
+  }, [list, persistList, findExistingItem]);
 
   // Add multiple items
   const addItems = useCallback((
@@ -89,10 +102,25 @@ export function useGroceryList(listId: string | null) {
       unit?: UnitType;
       price?: number;
     }>
-  ) => {
-    if (!list) return [];
+  ): { added: GroceryItem[]; duplicates: string[] } => {
+    if (!list) return { added: [], duplicates: [] };
     
-    const newItems: GroceryItem[] = items.map(item => {
+    const duplicates: string[] = [];
+    const newItems: GroceryItem[] = [];
+    const addedNames = new Set<string>(); // Track names added in this batch
+    
+    for (const item of items) {
+      const normalizedName = item.name.trim().toLowerCase();
+      
+      // Check if already exists in list or was already added in this batch
+      const existsInList = list.items.some(i => i.name.toLowerCase() === normalizedName);
+      const existsInBatch = addedNames.has(normalizedName);
+      
+      if (existsInList || existsInBatch) {
+        duplicates.push(item.name.trim());
+        continue;
+      }
+      
       const categorization = item.categoryId 
         ? { categoryId: item.categoryId, unit: item.unit || 'unit', quantity: item.quantity || 1 }
         : categorizeItemSync(item.name);
@@ -109,18 +137,21 @@ export function useGroceryList(listId: string | null) {
       };
       
       trackItemUsage(newItem.name, newItem.categoryId, newItem.quantity, newItem.unit);
+      newItems.push(newItem);
+      addedNames.add(normalizedName);
+    }
+    
+    if (newItems.length > 0) {
+      const updatedList: GroceryList = {
+        ...list,
+        items: [...list.items, ...newItems],
+        updatedAt: new Date(),
+      };
       
-      return newItem;
-    });
+      persistList(updatedList);
+    }
     
-    const updatedList: GroceryList = {
-      ...list,
-      items: [...list.items, ...newItems],
-      updatedAt: new Date(),
-    };
-    
-    persistList(updatedList);
-    return newItems;
+    return { added: newItems, duplicates };
   }, [list, persistList]);
 
   // Update item

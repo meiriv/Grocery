@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import { ArrowLeft, ShoppingBag, Share2, MoreVertical, Trash2, Edit3, CheckCircle, XCircle } from 'lucide-react';
+import { ArrowLeft, ShoppingBag, Share2, MoreVertical, Trash2, Edit3, CheckCircle, XCircle, AlertCircle, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTranslation } from '@/hooks/useTranslation';
 import { useGroceryList } from '@/hooks/useGroceryList';
@@ -50,6 +50,7 @@ export default function ListPage() {
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [showDeleteListConfirm, setShowDeleteListConfirm] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
+  const [duplicateNotification, setDuplicateNotification] = useState<string | null>(null);
 
   // Edit item form state
   const [editName, setEditName] = useState('');
@@ -58,18 +59,29 @@ export default function ListPage() {
   const [editCategory, setEditCategory] = useState('');
   const [editPrice, setEditPrice] = useState<string>('');
 
+  // Show duplicate notification with auto-dismiss
+  const showDuplicateAlert = (itemName: string) => {
+    setDuplicateNotification(itemName);
+    setTimeout(() => setDuplicateNotification(null), 3000);
+  };
+
   const handleAddItem = (item: {
     name: string;
     categoryId?: string;
     quantity?: number;
     unit?: UnitType;
   }) => {
-    addItem(item.name, {
+    const result = addItem(item.name, {
       categoryId: item.categoryId,
       quantity: item.quantity,
       unit: item.unit,
     });
-    setShowAddInput(false);
+    
+    if (result.isDuplicate && result.existingItem) {
+      showDuplicateAlert(result.existingItem.name);
+    } else {
+      setShowAddInput(false);
+    }
   };
 
   const handleAddMultiple = (items: Array<{
@@ -78,8 +90,15 @@ export default function ListPage() {
     quantity: number;
     unit: UnitType;
   }>) => {
-    addItems(items);
-    setShowAddInput(false);
+    const result = addItems(items);
+    
+    if (result.duplicates.length > 0) {
+      showDuplicateAlert(result.duplicates.join(', '));
+    }
+    
+    if (result.added.length > 0 || result.duplicates.length === items.length) {
+      setShowAddInput(false);
+    }
   };
 
   const handleEditItem = (itemId: string) => {
@@ -234,6 +253,25 @@ export default function ListPage() {
           </div>
         </div>
       </header>
+
+      {/* Duplicate Item Notification */}
+      {duplicateNotification && (
+        <div className="fixed top-20 left-4 right-4 z-50 animate-fade-in">
+          <div className="bg-orange-500 text-white rounded-xl p-4 shadow-lg flex items-center gap-3">
+            <AlertCircle size={20} className="flex-shrink-0" />
+            <div className="flex-1 min-w-0">
+              <p className="font-medium">{t.list.itemAlreadyExists || 'Item already exists'}</p>
+              <p className="text-sm text-white/80 truncate">{duplicateNotification}</p>
+            </div>
+            <button
+              onClick={() => setDuplicateNotification(null)}
+              className="p-1 hover:bg-white/20 rounded-lg transition-colors"
+            >
+              <X size={18} />
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Content */}
       <main className="px-4 pb-safe">

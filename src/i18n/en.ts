@@ -52,6 +52,8 @@ export const en = {
     uncheckAll: 'Uncheck All',
     deleteList: 'Delete List',
     deleteListConfirm: 'Are you sure you want to delete this list? This action cannot be undone.',
+    itemAlreadyExists: 'Item already exists in the list',
+    duplicatesSkipped: 'Some items were skipped (already in list)',
   },
   shopping: {
     title: 'Shopping Mode',

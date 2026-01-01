@@ -54,6 +54,8 @@ export const he: TranslationKeys = {
     uncheckAll: 'בטל סימון הכל',
     deleteList: 'מחק רשימה',
     deleteListConfirm: 'האם אתה בטוח שברצונך למחוק רשימה זו? לא ניתן לבטל פעולה זו.',
+    itemAlreadyExists: 'הפריט כבר קיים ברשימה',
+    duplicatesSkipped: 'חלק מהפריטים דולגו (כבר קיימים ברשימה)',
   },
   shopping: {
     title: 'מצב קניות',
