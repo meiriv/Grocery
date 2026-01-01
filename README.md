@@ -88,6 +88,31 @@ npm run build
 npm start
 ```
 
+## 📱 Install as Mobile App (PWA)
+
+This app can be installed on your phone and used like a native app - no app store required!
+
+### iPhone / iPad (Safari)
+1. Open the app in **Safari** (must be Safari, not Chrome)
+2. Tap the **Share** button (square with arrow pointing up)
+3. Scroll down and tap **"Add to Home Screen"**
+4. Give it a name and tap **"Add"**
+5. The app icon will appear on your home screen
+
+### Android (Chrome)
+1. Open the app in **Chrome**
+2. Tap the **three dots menu** (⋮) in the top right
+3. Tap **"Add to Home screen"** or **"Install app"**
+4. Confirm by tapping **"Add"**
+5. The app icon will appear on your home screen
+
+### Desktop (Chrome/Edge)
+1. Open the app in Chrome or Edge
+2. Click the **install icon** (⊕) in the address bar, or
+3. Click the three dots menu → **"Install Smart Grocery..."**
+
+> 💡 **Tip**: Once installed, the app works offline and opens in full-screen mode without browser UI!
+
 ## ⚙️ Configuration
 
 ### AI Categorization (Optional)
