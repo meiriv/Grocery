@@ -388,7 +388,7 @@ export function SmartInput({
               )}
               title={t.list.addMultiple}
             >
-              <List size={20} />
+              <List size={20} className="lucide-list" />
             </button>
             
             {/* Submit button */}

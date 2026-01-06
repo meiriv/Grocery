@@ -164,14 +164,49 @@ interface QuantityDisplayProps {
   quantity: number;
   unit: UnitType;
   className?: string;
+  highlightMultiple?: boolean;
 }
 
-export function QuantityDisplay({ quantity, unit, className }: QuantityDisplayProps) {
+export function QuantityDisplay({ quantity, unit, className, highlightMultiple = true }: QuantityDisplayProps) {
   const { language } = useTranslation();
+  
+  const unitData = units[unit];
+  const shortName = unitData.shortName[language];
+  
+  // Format the number nicely
+  const formattedQty = Number.isInteger(quantity) 
+    ? quantity.toString() 
+    : quantity.toFixed(1).replace(/\.0$/, '');
+  
+  // Determine if we should highlight (quantity > 1 for units, or > default minimum for weight)
+  const shouldHighlight = highlightMultiple && (
+    (unit === 'unit' && quantity > 1) ||
+    (unit === 'kg' && quantity > 1) ||
+    (unit === 'l' && quantity > 1) ||
+    (unit === 'package' && quantity > 1) ||
+    (unit === 'dozen' && quantity > 1) ||
+    (unit === 'bunch' && quantity > 1) ||
+    (unit === 'g' && quantity > 100) ||
+    (unit === 'ml' && quantity > 100)
+  );
+  
+  if (unit === 'unit') {
+    return (
+      <span className={cn('text-sm text-[var(--muted-foreground)]', className)}>
+        x
+        <span className={shouldHighlight ? 'font-bold text-emerald-500' : ''}>
+          {formattedQty}
+        </span>
+      </span>
+    );
+  }
   
   return (
     <span className={cn('text-sm text-[var(--muted-foreground)]', className)}>
-      {formatQuantityWithUnit(quantity, unit, language)}
+      <span className={shouldHighlight ? 'font-bold text-emerald-500' : ''}>
+        {formattedQty}
+      </span>
+      {' '}{shortName}
     </span>
   );
 }

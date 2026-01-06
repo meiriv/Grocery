@@ -150,7 +150,7 @@ export function GroceryItem({
                 className="touch-target p-2 text-[var(--muted-foreground)] hover:text-[var(--foreground)] active:text-[var(--foreground)] transition-colors"
                 aria-label={t.common.edit}
               >
-                <Edit3 size={18} />
+                <Edit3 size={18} className="lucide-edit-3" />
               </button>
             )}
             
@@ -171,7 +171,7 @@ export function GroceryItem({
               className="touch-target p-2 text-[var(--muted-foreground)] hover:text-red-500 active:text-red-500 transition-colors"
               aria-label={t.common.delete}
             >
-              <Trash2 size={18} />
+              <Trash2 size={18} className="lucide-trash-2" />
             </button>
           </div>
         )}

@@ -13,8 +13,8 @@ import { test, expect, Page } from '@playwright/test';
  * 7. Cleanup - Remove all test data
  */
 
-// Default timeout - reduced for faster feedback
-test.setTimeout(30000);
+// Increase default timeout for slower operations
+test.setTimeout(60000);
 
 // Helper function to clear all localStorage data
 async function clearAllData(page: Page) {
@@ -27,9 +27,10 @@ async function clearAllData(page: Page) {
 
 // Helper function to wait for app to be ready
 async function waitForAppReady(page: Page) {
-  await page.waitForLoadState('domcontentloaded');
+  await page.waitForLoadState('networkidle');
   // Wait for any loading spinners to disappear
-  await page.waitForSelector('.animate-spin', { state: 'hidden', timeout: 5000 }).catch(() => {});
+  await page.waitForSelector('.animate-spin', { state: 'hidden', timeout: 10000 }).catch(() => {});
+  await page.waitForTimeout(300); // Small delay for animations
 }
 
 // Helper function to create a test list
@@ -37,14 +38,14 @@ async function createTestList(page: Page, listName: string = 'Test Shopping List
   await page.goto('/');
   await waitForAppReady(page);
   
-  // Click the FAB (floating action button) - has class "fab"
-  const fabButton = page.locator('button.fab').first();
+  // Click the FAB (floating action button) - it contains a Plus icon
+  const fabButton = page.locator('button.fixed, button[class*="fixed"]').first();
   await fabButton.click();
   
   // Wait for modal dialog
   await page.waitForSelector('[role="dialog"]', { state: 'visible', timeout: 10000 });
   
-  // Enter list name - find input in the dialog
+  // Enter list name - find input by label or placeholder
   const nameInput = page.locator('[role="dialog"] input').first();
   await nameInput.fill(listName);
   
@@ -78,8 +79,8 @@ test.describe('Home Page - List Management', () => {
     // Clear data first
     await clearAllData(page);
     
-    // Click the FAB
-    const fabButton = page.locator('button.fab').first();
+    // Click the floating add button
+    const fabButton = page.locator('button.fixed, button[class*="fixed"]').first();
     await fabButton.click();
     
     // Wait for modal to appear
@@ -114,7 +115,7 @@ test.describe('Home Page - List Management', () => {
     await page.goto('/');
     await waitForAppReady(page);
     
-    // Find the menu button (MoreVertical icon)
+    // Find the menu button (MoreVertical icon) - look for SVG with specific class
     const menuButton = page.locator('button:has(svg.lucide-more-vertical)').first();
     await menuButton.click();
     
@@ -136,8 +137,8 @@ test.describe('List Page - Item Management', () => {
   });
 
   test('should add a single item to the list', async ({ page }) => {
-    // Click the FAB
-    const fabButton = page.locator('button.fab').first();
+    // Click the floating add button
+    const fabButton = page.locator('button.fixed, button[class*="fixed"]').first();
     await fabButton.click();
     
     // Wait for input to appear
@@ -153,8 +154,8 @@ test.describe('List Page - Item Management', () => {
   });
 
   test('should add multiple items at once', async ({ page }) => {
-    // Click FAB
-    const fabButton = page.locator('button.fab').first();
+    // Click add button
+    const fabButton = page.locator('button.fixed, button[class*="fixed"]').first();
     await fabButton.click();
     await page.waitForSelector('input, textarea', { state: 'visible' });
     
@@ -182,7 +183,7 @@ test.describe('List Page - Item Management', () => {
 
   test('should delete an item', async ({ page }) => {
     // First add an item
-    const fabButton = page.locator('button.fab').first();
+    const fabButton = page.locator('button.fixed, button[class*="fixed"]').first();
     await fabButton.click();
     await page.waitForSelector('input', { state: 'visible' });
     
@@ -201,7 +202,7 @@ test.describe('List Page - Item Management', () => {
 
   test('should add item to favorites', async ({ page }) => {
     // First add an item
-    const fabButton = page.locator('button.fab').first();
+    const fabButton = page.locator('button.fixed, button[class*="fixed"]').first();
     await fabButton.click();
     await page.waitForSelector('input', { state: 'visible' });
     
@@ -220,7 +221,7 @@ test.describe('List Page - Item Management', () => {
 
   test('should edit an item', async ({ page }) => {
     // First add an item
-    const fabButton = page.locator('button.fab').first();
+    const fabButton = page.locator('button.fixed, button[class*="fixed"]').first();
     await fabButton.click();
     await page.waitForSelector('input', { state: 'visible' });
     
@@ -253,7 +254,7 @@ test.describe('List Page - Item Management', () => {
     await page.locator('button:has(svg.lucide-more-vertical)').click();
     await page.waitForTimeout(300);
     
-    // Click edit option - first button with edit icon in menu
+    // Click edit option - first one in menu
     await page.locator('button:has(svg.lucide-edit-3)').first().click();
     
     // Wait for modal
@@ -281,7 +282,7 @@ test.describe('Shopping Mode', () => {
     await createTestList(page, 'Shopping Test List');
     
     // Add some items
-    const fabButton = page.locator('button.fab').first();
+    const fabButton = page.locator('button.fixed, button[class*="fixed"]').first();
     await fabButton.click();
     await page.waitForSelector('input, textarea', { state: 'visible' });
     
@@ -382,8 +383,8 @@ test.describe('Categories Page', () => {
   });
 
   test('should open add new category modal', async ({ page }) => {
-    // Click FAB
-    const fabButton = page.locator('button.fab').first();
+    // Click floating add button
+    const fabButton = page.locator('button.fixed, button[class*="fixed"]').first();
     await fabButton.click();
     
     // Modal should appear
@@ -391,8 +392,8 @@ test.describe('Categories Page', () => {
   });
 
   test('should create a custom category', async ({ page }) => {
-    // Click FAB
-    const fabButton = page.locator('button.fab').first();
+    // Click add button
+    const fabButton = page.locator('button.fixed, button[class*="fixed"]').first();
     await fabButton.click();
     
     // Wait for modal

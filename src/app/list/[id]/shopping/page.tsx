@@ -65,15 +65,15 @@ export default function ShoppingModePage() {
   const allDone = pendingItems.length === 0;
 
   return (
-    <div className="min-h-screen bg-[var(--background)]">
+    <div className="min-h-screen bg-[var(--background)] flex flex-col">
       {/* Header - minimal for shopping mode */}
-      <header className="sticky top-0 z-30 bg-emerald-500 text-white">
+      <header className="sticky top-0 z-30 bg-emerald-500 text-white flex-shrink-0">
         <div className="flex items-center justify-between px-4 py-4">
           <IconButton
             onClick={() => router.push(`/list/${id}`)}
             className="text-white hover:bg-white/20"
           >
-            <X size={24} />
+            <X size={24} className="lucide-x" />
           </IconButton>
           
           <div className="text-center">
@@ -104,7 +104,7 @@ export default function ShoppingModePage() {
       </header>
 
       {/* Content */}
-      <main className="px-4 py-6 pb-32">
+      <main className="flex-1 px-4 py-6 overflow-y-auto">
         {allDone ? (
           <div className="flex flex-col items-center justify-center py-20 text-center animate-scale-in">
             <div className="w-24 h-24 rounded-full bg-emerald-500/20 flex items-center justify-center mb-6">
@@ -279,9 +279,9 @@ export default function ShoppingModePage() {
         )}
       </main>
 
-      {/* Bottom action */}
+      {/* Bottom action - sticky footer */}
       {!allDone && (
-        <div className="fixed bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-[var(--background)] to-transparent">
+        <footer className="flex-shrink-0 p-4 bg-[var(--background)] border-t border-[var(--border)]">
           <Button
             onClick={handleComplete}
             variant="secondary"
@@ -290,7 +290,7 @@ export default function ShoppingModePage() {
           >
             {t.shopping.exitShopping}
           </Button>
-        </div>
+        </footer>
       )}
     </div>
   );

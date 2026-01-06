@@ -14,10 +14,10 @@ interface NavItem {
 }
 
 const navItems: NavItem[] = [
-  { href: '/', icon: <Home size={24} />, labelKey: 'home' },
-  { href: '/favorites', icon: <Heart size={24} />, labelKey: 'favorites' },
-  { href: '/categories', icon: <FolderOpen size={24} />, labelKey: 'categories' },
-  { href: '/settings', icon: <Settings size={24} />, labelKey: 'settings' },
+  { href: '/', icon: <Home size={24} className="lucide-home" />, labelKey: 'home' },
+  { href: '/favorites', icon: <Heart size={24} className="lucide-heart" />, labelKey: 'favorites' },
+  { href: '/categories', icon: <FolderOpen size={24} className="lucide-folder-open" />, labelKey: 'categories' },
+  { href: '/settings', icon: <Settings size={24} className="lucide-settings" />, labelKey: 'settings' },
 ];
 
 export function BottomNav() {

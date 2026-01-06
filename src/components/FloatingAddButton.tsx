@@ -13,7 +13,7 @@ export function FloatingAddButton({ onClick, label = 'Add' }: FloatingAddButtonP
   return (
     <button
       onClick={onClick}
-      className="fab"
+      className="fab fixed"
       aria-label={label}
     >
       <Plus size={28} strokeWidth={2.5} />

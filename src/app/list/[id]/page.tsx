@@ -166,7 +166,7 @@ export default function ListPage() {
       <header className="sticky top-0 z-30 bg-[var(--background)]/80 backdrop-blur-lg border-b border-[var(--border)]">
         <div className="flex items-center gap-3 px-4 py-3">
           <IconButton onClick={() => router.push('/')}>
-            <ArrowLeft size={24} className={isRTL ? 'rotate-180' : ''} />
+            <ArrowLeft size={24} className={cn('lucide-arrow-left', isRTL && 'rotate-180')} />
           </IconButton>
           
           <div className="flex-1 min-w-0">
@@ -182,12 +182,12 @@ export default function ListPage() {
             onClick={() => router.push(`/list/${id}/shopping`)}
             className="bg-emerald-500/20 text-emerald-500"
           >
-            <ShoppingBag size={22} />
+            <ShoppingBag size={22} className="lucide-shopping-bag" />
           </IconButton>
 
           <div className="relative">
             <IconButton onClick={() => setShowMenu(!showMenu)}>
-              <MoreVertical size={22} />
+              <MoreVertical size={22} className="lucide-more-vertical" />
             </IconButton>
 
             {showMenu && (
@@ -198,7 +198,7 @@ export default function ListPage() {
                     onClick={handleStartEditListName}
                     className="w-full flex items-center gap-2 px-4 py-2.5 hover:bg-[var(--accent)] transition-colors"
                   >
-                    <Edit3 size={16} />
+                    <Edit3 size={16} className="lucide-edit-3" />
                     {t.common.edit}
                   </button>
                   <button
@@ -208,7 +208,7 @@ export default function ListPage() {
                     }}
                     className="w-full flex items-center gap-2 px-4 py-2.5 hover:bg-[var(--accent)] transition-colors"
                   >
-                    <Share2 size={16} />
+                    <Share2 size={16} className="lucide-share-2" />
                     {t.list.shareList}
                   </button>
                   {checkedItems.length > 0 && (

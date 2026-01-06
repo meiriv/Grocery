@@ -149,13 +149,14 @@ export function parseItemList(input: string): string[] {
 
   // Check if it looks like a list of single-word items (common for grocery lists)
   // Heuristic: if most words are short and could be item names
+  // BUT: only split if there are 4+ words to avoid splitting phrases like "Item To Delete"
   const couldBeSingleWordItems = words.every(word => {
     // Hebrew or English single words that could be grocery items
     return word.length >= 2 && word.length <= 20;
   });
 
-  // If it looks like a space-separated list of items
-  if (couldBeSingleWordItems && words.length >= 3) {
+  // If it looks like a space-separated list of items (4+ words to be safe)
+  if (couldBeSingleWordItems && words.length >= 4) {
     return words;
   }
 

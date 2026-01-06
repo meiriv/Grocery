@@ -149,7 +149,7 @@ export default function HomePage() {
                       }}
                       className="absolute top-4 end-4 p-2 text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-colors"
                     >
-                      <MoreVertical size={18} />
+                      <MoreVertical size={18} className="lucide-more-vertical" />
                     </button>
 
                     {/* Dropdown menu */}
@@ -168,7 +168,7 @@ export default function HomePage() {
                             }}
                             className="w-full flex items-center gap-2 px-4 py-2.5 text-red-500 hover:bg-[var(--accent)] transition-colors"
                           >
-                            <Trash2 size={16} />
+                            <Trash2 size={16} className="lucide-trash-2" />
                             {t.home.deleteList}
                           </button>
                         </div>
