@@ -109,59 +109,26 @@ export function isPWAInstalled(): boolean {
   );
 }
 
-// Parse item list from various formats (new lines, commas, or intelligent space separation)
+// Parse item list from various formats (new lines or commas only - spaces are NOT separators)
 export function parseItemList(input: string): string[] {
   const trimmed = input.trim();
   if (!trimmed) return [];
 
-  // First, check if input contains new lines - split by new lines
-  if (trimmed.includes('\n')) {
-    return trimmed
-      .split(/\n+/)
-      .map(item => item.trim())
-      .filter(item => item.length > 0)
-      // Further split each line by commas if present
-      .flatMap(line => {
-        if (line.includes(',') || line.includes('،')) {
-          return line.split(/[,،]/).map(i => i.trim()).filter(i => i.length > 0);
-        }
-        return [line];
-      });
-  }
-
-  // Check if input contains commas (English or Hebrew/Arabic)
-  if (trimmed.includes(',') || trimmed.includes('،')) {
-    return trimmed
-      .split(/[,،]/)
-      .map(item => item.trim())
-      .filter(item => item.length > 0);
-  }
-
-  // For space-separated input, be smart about it:
-  // - If all "words" are single words (no spaces within items), treat as separate items
-  // - Common grocery items are usually 1-3 words
-  const words = trimmed.split(/\s+/).filter(w => w.length > 0);
+  // Split by new lines first
+  const lines = trimmed.split(/\n+/).map(line => line.trim()).filter(line => line.length > 0);
   
-  // If only 1-2 words, treat as a single item
-  if (words.length <= 2) {
-    return [trimmed];
+  // Then split each line by commas (English or Hebrew/Arabic comma)
+  const items: string[] = [];
+  for (const line of lines) {
+    if (line.includes(',') || line.includes('،')) {
+      const parts = line.split(/[,،]/).map(i => i.trim()).filter(i => i.length > 0);
+      items.push(...parts);
+    } else {
+      items.push(line);
+    }
   }
 
-  // Check if it looks like a list of single-word items (common for grocery lists)
-  // Heuristic: if most words are short and could be item names
-  // BUT: only split if there are 4+ words to avoid splitting phrases like "Item To Delete"
-  const couldBeSingleWordItems = words.every(word => {
-    // Hebrew or English single words that could be grocery items
-    return word.length >= 2 && word.length <= 20;
-  });
-
-  // If it looks like a space-separated list of items (4+ words to be safe)
-  if (couldBeSingleWordItems && words.length >= 4) {
-    return words;
-  }
-
-  // Default: treat as a single item
-  return [trimmed];
+  return items;
 }
 
 // Normalize text for comparison (lowercase, trim, remove extra spaces)

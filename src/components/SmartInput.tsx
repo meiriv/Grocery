@@ -50,7 +50,7 @@ export function SmartInput({
   } = useUndoRedo('');
   const [parsedItems, setParsedItems] = useState<ParsedItem[]>([]);
   const [showPreview, setShowPreview] = useState(false);
-  const [isMultiLine, setIsMultiLine] = useState(false);
+  const [isMultiLine, setIsMultiLine] = useState(true); // Default to multi-line mode
   const inputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -233,13 +233,17 @@ export function SmartInput({
 
   // Auto-focus on mount if autoFocus is true
   useEffect(() => {
-    if (autoFocus && inputRef.current) {
+    if (autoFocus) {
       // Small delay to ensure the element is rendered
       setTimeout(() => {
-        inputRef.current?.focus();
+        if (isMultiLine && textareaRef.current) {
+          textareaRef.current.focus();
+        } else if (inputRef.current) {
+          inputRef.current.focus();
+        }
       }, 100);
     }
-  }, [autoFocus]);
+  }, [autoFocus, isMultiLine]);
 
   return (
     <div className="w-full">

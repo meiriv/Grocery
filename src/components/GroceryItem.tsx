@@ -47,6 +47,17 @@ export function GroceryItem({
   const isChecked = item.status === 'checked';
   const isOutOfStock = item.status === 'out_of_stock';
 
+  // Swipe left to delete (physical left, regardless of RTL)
+  const { handlers, state } = useSwipeGesture({
+    threshold: 100,
+    onSwipeLeft: () => {
+      vibrate(20);
+      onDelete();
+    },
+    disabled: false,
+    ignoreRTL: true, // Delete is always swipe left physically
+  });
+
   return (
     <div
       className={cn(
@@ -57,13 +68,23 @@ export function GroceryItem({
         isOutOfStock && 'border-orange-500/50'
       )}
     >
+      {/* Delete indicator background (revealed on swipe) */}
+      <div className="absolute inset-y-0 end-0 w-24 bg-red-500 flex items-center justify-end pe-4">
+        <Trash2 size={24} className="text-white" />
+      </div>
+
       {/* Main content */}
       <div
+        {...handlers}
         className={cn(
           'relative flex items-center gap-3 p-4',
           'bg-[var(--card)]',
+          'transition-transform duration-200',
           compact ? 'py-3' : 'py-4'
         )}
+        style={{
+          transform: `translateX(${state.translateX}px)`,
+        }}
       >
         {/* Checkbox indicator */}
         <div
@@ -117,7 +138,7 @@ export function GroceryItem({
           </div>
         </div>
 
-        {/* Action buttons - always visible */}
+        {/* Action buttons - favorite and edit only (delete is via swipe) */}
         {showActions && (
           <div 
             className="flex items-center gap-1"
@@ -125,14 +146,14 @@ export function GroceryItem({
             onTouchMove={(e) => e.stopPropagation()}
             onTouchEnd={(e) => e.stopPropagation()}
           >
-            {/* Favorite - always visible */}
+            {/* Favorite */}
             <FavoriteButton
               isFavorite={isFavorite}
               onToggle={handleFavoriteToggle}
               size="sm"
             />
             
-            {/* Edit - always visible */}
+            {/* Edit */}
             {onEdit && (
               <button
                 onClick={(e) => {
@@ -153,26 +174,6 @@ export function GroceryItem({
                 <Edit3 size={18} className="lucide-edit-3" />
               </button>
             )}
-            
-            {/* Delete - always visible */}
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                e.preventDefault();
-                vibrate(10);
-                onDelete();
-              }}
-              onTouchEnd={(e) => {
-                e.stopPropagation();
-                e.preventDefault();
-                vibrate(10);
-                onDelete();
-              }}
-              className="touch-target p-2 text-[var(--muted-foreground)] hover:text-red-500 active:text-red-500 transition-colors"
-              aria-label={t.common.delete}
-            >
-              <Trash2 size={18} className="lucide-trash-2" />
-            </button>
           </div>
         )}
       </div>

@@ -9,6 +9,8 @@ interface SwipeConfig {
   onSwipeRight?: () => void;
   onTap?: () => void;
   disabled?: boolean;
+  /** If true, swipe directions are physical (left = finger moves left), ignoring RTL */
+  ignoreRTL?: boolean;
 }
 
 interface SwipeState {
@@ -26,9 +28,12 @@ export function useSwipeGesture(config: SwipeConfig) {
     onSwipeRight,
     onTap,
     disabled = false,
+    ignoreRTL = false,
   } = config;
   
   const { isRTL } = useRTL();
+  // Use physical direction when ignoreRTL is true
+  const shouldFlip = !ignoreRTL && isRTL;
   const elementRef = useRef<HTMLDivElement>(null);
   const [swipeState, setSwipeState] = useState<SwipeState>({
     startX: 0,
@@ -76,12 +81,12 @@ export function useSwipeGesture(config: SwipeConfig) {
       isTapRef.current = false;
     }
     
-    // Determine direction (accounting for RTL)
+    // Determine direction (accounting for RTL unless ignoreRTL is true)
     let direction: 'left' | 'right' | null = null;
     if (deltaX < -10) {
-      direction = isRTL ? 'right' : 'left';
+      direction = shouldFlip ? 'right' : 'left';
     } else if (deltaX > 10) {
-      direction = isRTL ? 'left' : 'right';
+      direction = shouldFlip ? 'left' : 'right';
     }
     
     setSwipeState(prev => ({
@@ -106,8 +111,8 @@ export function useSwipeGesture(config: SwipeConfig) {
     if (isTapRef.current && Math.abs(deltaX) < 10 && duration < 300) {
       onTap?.();
     } else {
-      // Check for swipe (accounting for RTL)
-      const effectiveDelta = isRTL ? -deltaX : deltaX;
+      // Check for swipe (accounting for RTL unless ignoreRTL is true)
+      const effectiveDelta = shouldFlip ? -deltaX : deltaX;
       
       if (effectiveDelta < -threshold && onSwipeLeft) {
         onSwipeLeft();
@@ -125,7 +130,7 @@ export function useSwipeGesture(config: SwipeConfig) {
       direction: null,
     });
     setTranslateX(0);
-  }, [disabled, swipeState, threshold, onSwipeLeft, onSwipeRight, onTap, isRTL]);
+  }, [disabled, swipeState, threshold, onSwipeLeft, onSwipeRight, onTap, shouldFlip]);
 
   // Clean up on unmount
   useEffect(() => {

@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import { ArrowLeft, ShoppingBag, Share2, MoreVertical, Trash2, Edit3, CheckCircle, XCircle, AlertCircle, X } from 'lucide-react';
+import { ArrowLeft, ShoppingBag, Share2, MoreVertical, Trash2, Edit3, CheckCircle, XCircle, AlertCircle, X, RotateCcw } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTranslation } from '@/hooks/useTranslation';
 import { useGroceryList } from '@/hooks/useGroceryList';
@@ -48,6 +48,7 @@ export default function ListPage() {
   const [editingListName, setEditingListName] = useState(false);
   const [newListName, setNewListName] = useState('');
   const [showClearConfirm, setShowClearConfirm] = useState(false);
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [showDeleteListConfirm, setShowDeleteListConfirm] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
   const [duplicateNotification, setDuplicateNotification] = useState<string | null>(null);
@@ -211,6 +212,21 @@ export default function ListPage() {
                     <Share2 size={16} className="lucide-share-2" />
                     {t.list.shareList}
                   </button>
+                  {(checkedItems.length > 0 || outOfStockItems.length > 0) && (
+                    <>
+                      <div className="border-t border-[var(--border)] my-1" />
+                      <button
+                        onClick={() => {
+                          setShowMenu(false);
+                          setShowResetConfirm(true);
+                        }}
+                        className="w-full flex items-center gap-2 px-4 py-2.5 hover:bg-[var(--accent)] transition-colors"
+                      >
+                        <RotateCcw size={16} />
+                        {t.list.resetShopping}
+                      </button>
+                    </>
+                  )}
                   {checkedItems.length > 0 && (
                     <>
                       <div className="border-t border-[var(--border)] my-1" />
@@ -445,6 +461,20 @@ export default function ListPage() {
         confirmText={t.common.delete}
         cancelText={t.common.cancel}
         variant="danger"
+      />
+
+      {/* Reset Shopping Confirmation */}
+      <ConfirmDialog
+        isOpen={showResetConfirm}
+        onClose={() => setShowResetConfirm(false)}
+        onConfirm={() => {
+          uncheckAll();
+          setShowResetConfirm(false);
+        }}
+        title={t.list.resetShopping}
+        message={t.list.resetShoppingConfirm}
+        confirmText={t.list.resetShopping}
+        cancelText={t.common.cancel}
       />
 
       {/* Delete List Confirmation */}

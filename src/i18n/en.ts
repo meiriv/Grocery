@@ -50,6 +50,8 @@ export const en = {
     shareList: 'Share List',
     clearChecked: 'Clear Checked',
     uncheckAll: 'Uncheck All',
+    resetShopping: 'Reset Shopping',
+    resetShoppingConfirm: 'This will uncheck all items and reset out-of-stock items. Ready to start fresh?',
     deleteList: 'Delete List',
     deleteListConfirm: 'Are you sure you want to delete this list? This action cannot be undone.',
     itemAlreadyExists: 'Item already exists in the list',

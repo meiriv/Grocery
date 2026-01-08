@@ -52,6 +52,8 @@ export const he: TranslationKeys = {
     shareList: 'שתף רשימה',
     clearChecked: 'נקה מסומנים',
     uncheckAll: 'בטל סימון הכל',
+    resetShopping: 'אפס קניות',
+    resetShoppingConfirm: 'פעולה זו תבטל את כל הסימונים ותאפס פריטים שלא במלאי. מוכן להתחיל מחדש?',
     deleteList: 'מחק רשימה',
     deleteListConfirm: 'האם אתה בטוח שברצונך למחוק רשימה זו? לא ניתן לבטל פעולה זו.',
     itemAlreadyExists: 'הפריט כבר קיים ברשימה',
