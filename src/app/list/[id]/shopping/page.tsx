@@ -68,6 +68,8 @@ export default function ShoppingModePage() {
     <div className="min-h-screen bg-[var(--background)] flex flex-col">
       {/* Header - minimal for shopping mode */}
       <header className="sticky top-0 z-30 bg-emerald-500 text-white flex-shrink-0">
+        {/* Safe area spacer for iPhone notch/dynamic island */}
+        <div className="h-[calc(env(safe-area-inset-top,0px)+12px)]" />
         <div className="flex items-center justify-between px-4 py-4">
           <IconButton
             onClick={() => router.push(`/list/${id}`)}

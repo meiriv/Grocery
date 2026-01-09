@@ -42,6 +42,8 @@ export default function HomePage() {
     <div className="min-h-screen bg-[var(--background)]">
       {/* Header */}
       <header className="sticky top-0 z-30 bg-[var(--background)]/80 backdrop-blur-lg border-b border-[var(--border)]">
+        {/* Safe area spacer for iPhone notch/dynamic island */}
+        <div className="h-[calc(env(safe-area-inset-top,0px)+12px)]" />
         <div className="px-4 py-4">
           <h1 className="text-2xl font-bold text-[var(--foreground)]">
             {t.home.title}
