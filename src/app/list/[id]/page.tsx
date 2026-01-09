@@ -179,12 +179,15 @@ export default function ListPage() {
             </p>
           </div>
 
-          <IconButton
+          <Button
             onClick={() => router.push(`/list/${id}/shopping`)}
-            className="bg-emerald-500/20 text-emerald-500"
+            variant="primary"
+            size="sm"
+            leftIcon={<ShoppingBag size={18} className="lucide-shopping-bag" />}
+            className="whitespace-nowrap"
           >
-            <ShoppingBag size={22} className="lucide-shopping-bag" />
-          </IconButton>
+            {t.list.startShopping}
+          </Button>
 
           <div className="relative">
             <IconButton onClick={() => setShowMenu(!showMenu)}>
