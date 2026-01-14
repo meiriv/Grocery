@@ -192,7 +192,7 @@ export function QuantityDisplay({ quantity, unit, className, highlightMultiple =
   
   if (unit === 'unit') {
     return (
-      <span className={cn('text-sm text-[var(--muted-foreground)]', className)}>
+      <span className={cn('text-base text-[var(--muted-foreground)]', className)}>
         x
         <span className={shouldHighlight ? 'font-bold text-emerald-500' : ''}>
           {formattedQty}
@@ -202,7 +202,7 @@ export function QuantityDisplay({ quantity, unit, className, highlightMultiple =
   }
   
   return (
-    <span className={cn('text-sm text-[var(--muted-foreground)]', className)}>
+    <span className={cn('text-base text-[var(--muted-foreground)]', className)}>
       <span className={shouldHighlight ? 'font-bold text-emerald-500' : ''}>
         {formattedQty}
       </span>
