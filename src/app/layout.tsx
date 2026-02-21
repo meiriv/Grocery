@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from 'next';
+import Script from 'next/script';
 import { Inter, JetBrains_Mono } from 'next/font/google';
 import './globals.css';
 import { SettingsProvider } from '@/hooks/useSettings';
@@ -61,6 +62,12 @@ export default function RootLayout({
             <ServiceWorkerRegistration />
           </TranslationProvider>
         </SettingsProvider>
+        <Script
+          src="https://serviceagent-production.up.railway.app/widget/service-agent-widget.js"
+          data-token="widget_3b09ef395a16332e894d1952c0e6d205"
+          data-position="bottom-right"
+          strategy="afterInteractive"
+        />
       </body>
     </html>
   );
