@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Check, AlertCircle, ShoppingCart, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -17,6 +17,9 @@ export default function SharePage() {
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
   const [importedList, setImportedList] = useState<GroceryList | null>(null);
   const [errorMessage, setErrorMessage] = useState<string>('');
+  // Remember which payload was imported so a re-render (or React's double effect
+  // invocation in development) cannot import the same list twice
+  const importedData = useRef<string | null>(null);
 
   useEffect(() => {
     const data = searchParams.get('data');
@@ -32,6 +35,11 @@ export default function SharePage() {
       setErrorMessage(t.share.invalidLink || 'Invalid share link');
       return;
     }
+    
+    if (importedData.current === data) {
+      return;
+    }
+    importedData.current = data;
     
     // Try to import the list
     try {

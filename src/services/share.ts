@@ -1,7 +1,7 @@
 import { generateShareCode, copyToClipboard, isBrowser, generateId } from '@/lib/utils';
 import { getList, saveList, getLists } from './storage';
-import type { GroceryList, SerializedGroceryList } from '@/types/grocery';
-import { serializeGroceryList, deserializeGroceryList } from '@/types/grocery';
+import { isValidUnit } from '@/lib/units';
+import type { GroceryList } from '@/types/grocery';
 
 // Compress and encode list data for URL sharing
 function encodeListData(list: GroceryList): string {
@@ -117,34 +117,51 @@ export async function copyShareLink(listId: string): Promise<boolean> {
   return copyToClipboard(url);
 }
 
-// Import a shared list from encoded data
+// Build a list name that does not collide with an existing one
+function uniqueListName(name: string, existingNames: string[]): string {
+  const taken = new Set(existingNames.map(n => n.trim().toLowerCase()));
+  const base = name.trim() || 'Shared list';
+  
+  if (!taken.has(base.toLowerCase())) return base;
+  
+  let suffix = 2;
+  while (taken.has(`${base} (${suffix})`.toLowerCase())) {
+    suffix++;
+  }
+  
+  return `${base} (${suffix})`;
+}
+
+const VALID_STATUSES = ['pending', 'checked', 'out_of_stock'] as const;
+
+// Import a shared list from encoded data. A shared list is always added as a new
+// list - importing must never overwrite a list the user already has.
 export function importSharedList(encodedData: string): GroceryList | null {
   const decoded = decodeListData(encodedData);
   
-  if (!decoded) {
+  if (!decoded || !Array.isArray(decoded.items)) {
     return null;
   }
   
-  // Check if we already have this list (by name match)
   const existingLists = getLists();
-  const existingList = existingLists.find(l => l.name === decoded.name);
-  
-  // Create a new list with the imported data
   const now = new Date();
+  
   const newList: GroceryList = {
-    id: existingList?.id || generateId(),
-    name: decoded.name,
+    id: generateId(),
+    name: uniqueListName(decoded.name, existingLists.map(l => l.name)),
     items: decoded.items.map((item, index) => ({
       id: generateId(),
-      name: item.name,
-      categoryId: item.categoryId,
-      quantity: item.quantity,
-      unit: item.unit as GroceryList['items'][0]['unit'],
-      status: item.status as GroceryList['items'][0]['status'],
-      price: item.price,
+      name: String(item.name ?? '').trim(),
+      categoryId: item.categoryId || 'other',
+      quantity: typeof item.quantity === 'number' && item.quantity > 0 ? item.quantity : 1,
+      unit: isValidUnit(item.unit) ? item.unit : 'unit',
+      status: (VALID_STATUSES as readonly string[]).includes(item.status)
+        ? (item.status as GroceryList['items'][0]['status'])
+        : 'pending',
+      price: typeof item.price === 'number' ? item.price : undefined,
       addedAt: new Date(now.getTime() + index), // Stagger times for ordering
-    })),
-    createdAt: existingList?.createdAt || now,
+    })).filter(item => item.name.length > 0),
+    createdAt: now,
     updatedAt: now,
   };
   

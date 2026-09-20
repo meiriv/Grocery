@@ -5,7 +5,7 @@ import { ChevronDown, Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useCategories } from '@/hooks/useCategories';
 import { useTranslation } from '@/hooks/useTranslation';
-import * as Icons from 'lucide-react';
+import { getCategoryIcon } from '@/lib/category-icons';
 
 interface CategoryPickerProps {
   value: string;
@@ -33,9 +33,7 @@ export function CategoryPicker({
 
   // Get icon component by name
   const getIconComponent = (iconName?: string) => {
-    if (!iconName) return null;
-    const IconsMap = Icons as unknown as Record<string, React.ComponentType<{ size?: number }>>;
-    const IconComponent = IconsMap[iconName];
+    const IconComponent = getCategoryIcon(iconName);
     return IconComponent ? <IconComponent size={16} /> : null;
   };
 

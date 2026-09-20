@@ -75,7 +75,7 @@ export default function HomePage() {
           </div>
         ) : (
           <div className="space-y-3 py-4">
-            {lists
+            {[...lists]
               .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
               .map((list) => {
                 const stats = getListStats(list);
@@ -150,6 +150,7 @@ export default function HomePage() {
                         setActiveMenu(activeMenu === list.id ? null : list.id);
                       }}
                       className="absolute top-4 end-4 p-2 text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-colors"
+                      aria-label={t.common.edit}
                     >
                       <MoreVertical size={18} className="lucide-more-vertical" />
                     </button>

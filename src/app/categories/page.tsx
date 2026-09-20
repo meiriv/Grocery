@@ -13,7 +13,7 @@ import { Input } from '@/components/ui/Input';
 import { ColorPicker, Select } from '@/components/ui/Select';
 import { QuantityEditor } from '@/components/QuantityEditor';
 import { availableCategoryColors } from '@/lib/categories';
-import { units } from '@/lib/units';
+import { units, getUnit } from '@/lib/units';
 import type { Category, UnitType } from '@/types/grocery';
 
 export default function CategoriesPage() {
@@ -111,6 +111,8 @@ export default function CategoriesPage() {
     <div className="min-h-screen bg-[var(--background)]">
       {/* Header */}
       <header className="sticky top-0 z-30 bg-[var(--background)]/80 backdrop-blur-lg border-b border-[var(--border)]">
+        {/* Safe area spacer for iPhone notch/dynamic island */}
+        <div className="h-[calc(env(safe-area-inset-top,0px)+12px)]" />
         <div className="px-4 py-4">
           <h1 className="text-2xl font-bold text-[var(--foreground)]">
             {t.categories.title}
@@ -124,7 +126,7 @@ export default function CategoriesPage() {
           {/* Default categories */}
           <div>
             <h2 className="text-sm font-semibold text-[var(--muted-foreground)] uppercase tracking-wider mb-3">
-              Default
+              {t.categories.defaultSection}
             </h2>
             <div className="space-y-2">
               {defaultCategories.map((category) => (
@@ -139,7 +141,7 @@ export default function CategoriesPage() {
                     {category.name[language]}
                   </span>
                   <span className="text-sm text-[var(--muted-foreground)]">
-                    {units[category.defaultUnit].shortName[language]}
+                    {getUnit(category.defaultUnit).shortName[language]}
                   </span>
                 </div>
               ))}
@@ -150,7 +152,7 @@ export default function CategoriesPage() {
           {customCategories.length > 0 && (
             <div>
               <h2 className="text-sm font-semibold text-[var(--muted-foreground)] uppercase tracking-wider mb-3">
-                Custom
+                {t.categories.customSection}
               </h2>
               <div className="space-y-2">
                 {customCategories.map((category) => (
@@ -165,19 +167,21 @@ export default function CategoriesPage() {
                       {category.name[language]}
                     </span>
                     <span className="text-sm text-[var(--muted-foreground)]">
-                      {units[category.defaultUnit].shortName[language]}
+                      {getUnit(category.defaultUnit).shortName[language]}
                     </span>
 
-                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="flex items-center gap-1">
                       <IconButton
                         onClick={() => handleEdit(category)}
                         className="text-[var(--muted-foreground)]"
+                        aria-label={t.categories.editCategory}
                       >
                         <Edit3 size={18} />
                       </IconButton>
                       <IconButton
                         onClick={() => setCategoryToDelete(category.id)}
                         className="text-[var(--muted-foreground)] hover:text-red-500"
+                        aria-label={t.categories.deleteCategory}
                       >
                         <Trash2 size={18} />
                       </IconButton>

@@ -21,6 +21,12 @@ interface SwipeState {
   direction: 'left' | 'right' | null;
 }
 
+// Timestamp of the most recent touch gesture anywhere in the app. Browsers fire
+// a synthetic click ~300ms after touchend, at the original coordinates - which
+// by then may be over a *different* item, because checking one off re-flows the
+// list. Tracking this globally makes sure that click is ignored everywhere.
+let lastTouchEndTimestamp = 0;
+
 export function useSwipeGesture(config: SwipeConfig) {
   const {
     threshold = 80,
@@ -47,6 +53,7 @@ export function useSwipeGesture(config: SwipeConfig) {
   // Track if this was a tap (minimal movement)
   const isTapRef = useRef(true);
   const startTimeRef = useRef(0);
+  const swipedRef = useRef(false);
 
   const handleTouchStart = useCallback((e: React.TouchEvent) => {
     if (disabled) return;
@@ -99,7 +106,7 @@ export function useSwipeGesture(config: SwipeConfig) {
     const maxTranslate = threshold * 1.5;
     const resistedDelta = Math.sign(deltaX) * Math.min(Math.abs(deltaX), maxTranslate);
     setTranslateX(resistedDelta);
-  }, [disabled, swipeState.isDragging, swipeState.startX, swipeState.startY, threshold, isRTL]);
+  }, [disabled, swipeState.isDragging, swipeState.startX, swipeState.startY, threshold, shouldFlip]);
 
   const handleTouchEnd = useCallback(() => {
     if (disabled) return;
@@ -107,10 +114,14 @@ export function useSwipeGesture(config: SwipeConfig) {
     const deltaX = swipeState.currentX - swipeState.startX;
     const duration = Date.now() - startTimeRef.current;
     
+    lastTouchEndTimestamp = Date.now();
+    swipedRef.current = false;
+    
     // Check if it was a tap (minimal movement and short duration)
     if (isTapRef.current && Math.abs(deltaX) < 10 && duration < 300) {
       onTap?.();
     } else {
+      swipedRef.current = true;
       // Check for swipe (accounting for RTL unless ignoreRTL is true)
       const effectiveDelta = shouldFlip ? -deltaX : deltaX;
       
@@ -132,6 +143,19 @@ export function useSwipeGesture(config: SwipeConfig) {
     setTranslateX(0);
   }, [disabled, swipeState, threshold, onSwipeLeft, onSwipeRight, onTap, shouldFlip]);
 
+  // Click handler for pointer devices (mouse, keyboard activation). Clicks that
+  // the browser synthesises right after a touch gesture are ignored, otherwise a
+  // single tap would trigger onTap twice (once from touchend, once from click).
+  const handleClick = useCallback(() => {
+    if (disabled) return;
+    if (Date.now() - lastTouchEndTimestamp < 700) return;
+    if (swipedRef.current) {
+      swipedRef.current = false;
+      return;
+    }
+    onTap?.();
+  }, [disabled, onTap]);
+
   // Clean up on unmount
   useEffect(() => {
     return () => {
@@ -145,6 +169,7 @@ export function useSwipeGesture(config: SwipeConfig) {
       onTouchStart: handleTouchStart,
       onTouchMove: handleTouchMove,
       onTouchEnd: handleTouchEnd,
+      onClick: handleClick,
     },
     state: {
       isDragging: swipeState.isDragging,

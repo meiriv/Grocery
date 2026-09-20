@@ -29,8 +29,8 @@ export function CategoryGroup({
   collapsible = true,
   showEmptyCategories = false,
 }: CategoryGroupProps) {
-  const { categories, getCategoryDisplayName } = useCategories();
-  const { language } = useTranslation();
+  const { categories } = useCategories();
+  const { t, language } = useTranslation();
   const [collapsedCategories, setCollapsedCategories] = useState<Set<string>>(new Set());
 
   // Group items by category
@@ -40,6 +40,30 @@ export function CategoryGroup({
   const activeCategories = categories.filter(
     (cat) => showEmptyCategories || groupedItems[cat.id]?.length > 0
   );
+
+  // Items pointing at a category that no longer exists (for example a custom
+  // category that was deleted, or a list shared by someone else) must still be
+  // shown - otherwise they silently disappear from the list.
+  const knownCategoryIds = new Set(categories.map((cat) => cat.id));
+  const orphanItems = items.filter((item) => !knownCategoryIds.has(item.categoryId));
+
+  const groups: Array<{ id: string; name: string; color: string; items: GroceryItemType[] }> = [
+    ...activeCategories.map((category) => ({
+      id: category.id,
+      name: category.name[language],
+      color: category.color,
+      items: groupedItems[category.id] || [],
+    })),
+  ];
+
+  if (orphanItems.length > 0) {
+    groups.push({
+      id: '__uncategorized__',
+      name: t.list.uncategorized,
+      color: 'bg-slate-500',
+      items: orphanItems,
+    });
+  }
 
   const toggleCategory = (categoryId: string) => {
     if (!collapsible) return;
@@ -61,8 +85,8 @@ export function CategoryGroup({
 
   return (
     <div className="space-y-4">
-      {activeCategories.map((category) => {
-        const categoryItems = groupedItems[category.id] || [];
+      {groups.map((category) => {
+        const categoryItems = category.items;
         const isCollapsed = collapsedCategories.has(category.id);
         const checkedCount = categoryItems.filter((i) => i.status === 'checked').length;
         const totalCount = categoryItems.length;
@@ -88,7 +112,7 @@ export function CategoryGroup({
                 className={cn('w-3 h-3 rounded-full flex-shrink-0', category.color)}
               />
               <span className="font-semibold text-[var(--foreground)]">
-                {category.name[language]}
+                {category.name}
               </span>
               <span className="text-sm text-[var(--muted-foreground)]">
                 ({checkedCount}/{totalCount})

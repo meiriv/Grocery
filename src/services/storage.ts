@@ -1,4 +1,4 @@
-import { isBrowser } from '@/lib/utils';
+import { isBrowser, generateId } from '@/lib/utils';
 import type {
   GroceryList,
   SerializedGroceryList,
@@ -8,12 +8,6 @@ import type {
   SerializedFrequentItem,
   Category,
   AppSettings,
-  deserializeGroceryList,
-  serializeGroceryList,
-  deserializeFavoriteItem,
-  serializeFavoriteItem,
-  deserializeFrequentItem,
-  serializeFrequentItem,
 } from '@/types/grocery';
 import {
   deserializeGroceryList as deserializeList,
@@ -79,6 +73,7 @@ function removeItem(key: string): void {
 // Lists storage
 export function getLists(): GroceryList[] {
   const serialized = getItem<SerializedGroceryList[]>(STORAGE_KEYS.LISTS, []);
+  if (!Array.isArray(serialized)) return [];
   return serialized.map(deserializeList);
 }
 
@@ -105,6 +100,45 @@ export function saveList(list: GroceryList): void {
   saveLists(lists);
 }
 
+// Append items to an existing list, skipping names that are already there.
+// Returns the number of items that were actually added.
+export function addItemsToList(
+  listId: string,
+  items: Array<{ name: string; categoryId: string; quantity: number; unit: GroceryList['items'][0]['unit'] }>
+): number {
+  const list = getList(listId);
+  if (!list) return 0;
+  
+  const existingNames = new Set(list.items.map(item => item.name.trim().toLowerCase()));
+  const newItems: GroceryList['items'] = [];
+  
+  for (const item of items) {
+    const key = item.name.trim().toLowerCase();
+    if (!key || existingNames.has(key)) continue;
+    
+    existingNames.add(key);
+    newItems.push({
+      id: generateId(),
+      name: item.name.trim(),
+      categoryId: item.categoryId,
+      quantity: item.quantity,
+      unit: item.unit,
+      status: 'pending',
+      addedAt: new Date(),
+    });
+  }
+  
+  if (newItems.length === 0) return 0;
+  
+  saveList({
+    ...list,
+    items: [...list.items, ...newItems],
+    updatedAt: new Date(),
+  });
+  
+  return newItems.length;
+}
+
 export function deleteList(id: string): void {
   const lists = getLists();
   const filtered = lists.filter(list => list.id !== id);
@@ -114,6 +148,7 @@ export function deleteList(id: string): void {
 // Favorites storage
 export function getFavorites(): FavoriteItem[] {
   const serialized = getItem<SerializedFavoriteItem[]>(STORAGE_KEYS.FAVORITES, []);
+  if (!Array.isArray(serialized)) return [];
   return serialized.map(deserializeFav);
 }
 
@@ -164,6 +199,7 @@ export function getFavoriteByName(name: string): FavoriteItem | null {
 // Frequent items storage
 export function getFrequentItems(): FrequentItem[] {
   const serialized = getItem<SerializedFrequentItem[]>(STORAGE_KEYS.FREQUENT, []);
+  if (!Array.isArray(serialized)) return [];
   return serialized.map(deserializeFreq);
 }
 
@@ -200,8 +236,10 @@ export function trackItemUsage(
     });
   }
   
-  // Keep only top 50 most used items
-  items.sort((a, b) => b.useCount - a.useCount);
+  // Keep only top 50 items: most used first, most recently used breaking ties
+  items.sort(
+    (a, b) => b.useCount - a.useCount || b.lastUsed.getTime() - a.lastUsed.getTime()
+  );
   saveFrequentItems(items.slice(0, 50));
 }
 
@@ -279,14 +317,18 @@ export function clearAllData(): void {
   Object.values(STORAGE_KEYS).forEach(key => {
     removeItem(key);
   });
+  // Non-namespaced leftovers
+  removeItem('gemini-model-name');
 }
 
-// Export data for backup
+// Export data for backup. Dates are written in the same serialized shape that is
+// used in storage so that the file can be read back by importData().
 export function exportData(): string {
   const data = {
-    lists: getLists(),
-    favorites: getFavorites(),
-    frequent: getFrequentItems(),
+    version: 1,
+    lists: getLists().map(serializeList),
+    favorites: getFavorites().map(serializeFav),
+    frequent: getFrequentItems().map(serializeFreq),
     categories: getCustomCategories(),
     settings: getSettings(),
     exportedAt: new Date().toISOString(),
@@ -295,16 +337,22 @@ export function exportData(): string {
   return JSON.stringify(data, null, 2);
 }
 
-// Import data from backup
+// Import data from a backup produced by exportData()
 export function importData(jsonString: string): boolean {
   try {
     const data = JSON.parse(jsonString);
     
-    if (data.lists) saveLists(data.lists);
-    if (data.favorites) saveFavorites(data.favorites);
-    if (data.frequent) saveFrequentItems(data.frequent);
-    if (data.categories) saveCustomCategories(data.categories);
-    if (data.settings) saveSettings(data.settings);
+    if (Array.isArray(data.lists)) {
+      saveLists((data.lists as SerializedGroceryList[]).map(deserializeList));
+    }
+    if (Array.isArray(data.favorites)) {
+      saveFavorites((data.favorites as SerializedFavoriteItem[]).map(deserializeFav));
+    }
+    if (Array.isArray(data.frequent)) {
+      saveFrequentItems((data.frequent as SerializedFrequentItem[]).map(deserializeFreq));
+    }
+    if (Array.isArray(data.categories)) saveCustomCategories(data.categories);
+    if (data.settings) saveSettings({ ...defaultSettings, ...data.settings });
     
     return true;
   } catch (error) {

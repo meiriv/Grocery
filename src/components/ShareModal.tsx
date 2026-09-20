@@ -1,14 +1,13 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Copy, Check, Share2, Link, QrCode } from 'lucide-react';
+import { Copy, Check, Share2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTranslation } from '@/hooks/useTranslation';
 import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
 import {
   getShareUrl,
-  generateListShareCode,
   copyShareLink,
   shareViaWebShare,
   isWebShareAvailable,
@@ -24,36 +23,28 @@ interface ShareModalProps {
 export function ShareModal({ isOpen, onClose, listId, listName }: ShareModalProps) {
   const { t } = useTranslation();
   const [shareUrl, setShareUrl] = useState<string | null>(null);
-  const [shareCode, setShareCode] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
-  const [codeCopied, setCodeCopied] = useState(false);
   const [canWebShare, setCanWebShare] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
-      const url = getShareUrl(listId);
-      const code = generateListShareCode(listId);
-      setShareUrl(url);
-      setShareCode(code);
+      setShareUrl(getShareUrl(listId));
       setCanWebShare(isWebShareAvailable());
       setCopied(false);
-      setCodeCopied(false);
     }
   }, [isOpen, listId]);
+
+  // Clear the "copied" confirmation without leaking a timer
+  useEffect(() => {
+    if (!copied) return;
+    const timer = setTimeout(() => setCopied(false), 2000);
+    return () => clearTimeout(timer);
+  }, [copied]);
 
   const handleCopyLink = async () => {
     const success = await copyShareLink(listId);
     if (success) {
       setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    }
-  };
-
-  const handleCopyCode = async () => {
-    if (shareCode) {
-      await navigator.clipboard.writeText(shareCode);
-      setCodeCopied(true);
-      setTimeout(() => setCodeCopied(false), 2000);
     }
   };
 
@@ -75,7 +66,7 @@ export function ShareModal({ isOpen, onClose, listId, listName }: ShareModalProp
             {t.share.copyLink}
           </label>
           <div className="flex gap-2">
-            <div className="flex-1 px-3 py-2 bg-[var(--secondary)] rounded-lg text-sm text-[var(--foreground)] truncate">
+            <div className="flex-1 min-w-0 px-3 py-2 bg-[var(--secondary)] rounded-lg text-sm text-[var(--foreground)] truncate">
               {shareUrl || '...'}
             </div>
             <Button
@@ -99,31 +90,6 @@ export function ShareModal({ isOpen, onClose, listId, listName }: ShareModalProp
               )}
             </Button>
           </div>
-        </div>
-
-        {/* Share Code */}
-        <div className="space-y-2">
-          <label className="text-sm font-medium text-[var(--foreground)]">
-            {t.share.shareCode}
-          </label>
-          <div className="flex gap-2">
-            <div className="flex-1 px-4 py-3 bg-[var(--secondary)] rounded-lg text-center font-mono text-2xl font-bold text-[var(--foreground)] tracking-widest">
-              {shareCode || '------'}
-            </div>
-            <Button
-              variant="secondary"
-              onClick={handleCopyCode}
-              className={cn(
-                'px-4',
-                codeCopied && 'bg-emerald-500/20 text-emerald-500'
-              )}
-            >
-              {codeCopied ? <Check size={20} /> : <Copy size={20} />}
-            </Button>
-          </div>
-          <p className="text-xs text-[var(--muted-foreground)]">
-            {t.share.shareCodeHint || 'Share this code with others to let them join your list'}
-          </p>
         </div>
 
         {/* Web Share API button (mobile) */}

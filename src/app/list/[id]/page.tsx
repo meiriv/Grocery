@@ -1,11 +1,13 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import { ArrowLeft, ShoppingBag, Share2, MoreVertical, Trash2, Edit3, CheckCircle, XCircle, AlertCircle, X, RotateCcw } from 'lucide-react';
+import { ArrowLeft, ShoppingBag, Share2, MoreVertical, Trash2, Edit3, CheckCircle, XCircle, AlertCircle, X, RotateCcw, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTranslation } from '@/hooks/useTranslation';
+import { useAISettings } from '@/hooks/useSettings';
 import { useGroceryList } from '@/hooks/useGroceryList';
+import { categorizeMultipleItems } from '@/services/categorizer';
 import { BottomNav } from '@/components/BottomNav';
 import { FloatingAddButton } from '@/components/FloatingAddButton';
 import { SmartInput } from '@/components/SmartInput';
@@ -23,6 +25,7 @@ export default function ListPage() {
   const id = params.id as string;
   const router = useRouter();
   const { t, isRTL, interpolate } = useTranslation();
+  const { aiEnabled, hasApiKey } = useAISettings();
   const {
     list,
     isLoading,
@@ -33,6 +36,8 @@ export default function ListPage() {
     addItem,
     addItems,
     updateItem,
+    updateItems,
+    increaseItemQuantity,
     removeItem,
     toggleItemChecked,
     markOutOfStock,
@@ -51,7 +56,11 @@ export default function ListPage() {
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [showDeleteListConfirm, setShowDeleteListConfirm] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
-  const [duplicateNotification, setDuplicateNotification] = useState<string | null>(null);
+  const [duplicateNotification, setDuplicateNotification] = useState<
+    { label: string; existingItemId?: string; quantity?: number } | null
+  >(null);
+  const [isCategorizingWithAI, setIsCategorizingWithAI] = useState(false);
+  const notificationTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Edit item form state
   const [editName, setEditName] = useState('');
@@ -61,10 +70,47 @@ export default function ListPage() {
   const [editPrice, setEditPrice] = useState<string>('');
 
   // Show duplicate notification with auto-dismiss
-  const showDuplicateAlert = (itemName: string) => {
-    setDuplicateNotification(itemName);
-    setTimeout(() => setDuplicateNotification(null), 3000);
-  };
+  const showDuplicateAlert = useCallback((
+    notification: { label: string; existingItemId?: string; quantity?: number }
+  ) => {
+    if (notificationTimer.current) clearTimeout(notificationTimer.current);
+    setDuplicateNotification(notification);
+    notificationTimer.current = setTimeout(() => setDuplicateNotification(null), 6000);
+  }, []);
+
+  // Clear the pending timer when leaving the page
+  useEffect(() => {
+    return () => {
+      if (notificationTimer.current) clearTimeout(notificationTimer.current);
+    };
+  }, []);
+
+  // Items are categorized instantly with keyword matching. When AI
+  // categorization is switched on, refine those guesses in the background and
+  // only correct the ones the AI disagrees with.
+  const refineCategoriesWithAI = useCallback(async (added: GroceryItem[]) => {
+    if (!aiEnabled || !hasApiKey || added.length === 0) return;
+    
+    setIsCategorizingWithAI(true);
+    try {
+      const results = await categorizeMultipleItems(added.map((item) => item.name));
+      
+      const updates = added
+        .map((item) => {
+          const result = results.get(item.name.toLowerCase());
+          if (!result || result.source !== 'ai') return null;
+          if (result.categoryId === item.categoryId) return null;
+          return { id: item.id, changes: { categoryId: result.categoryId } };
+        })
+        .filter((update): update is { id: string; changes: { categoryId: string } } => update !== null);
+      
+      updateItems(updates);
+    } catch (err) {
+      console.error('AI categorization failed:', err);
+    } finally {
+      setIsCategorizingWithAI(false);
+    }
+  }, [aiEnabled, hasApiKey, updateItems]);
 
   const handleAddItem = (item: {
     name: string;
@@ -79,9 +125,16 @@ export default function ListPage() {
     });
     
     if (result.isDuplicate && result.existingItem) {
-      showDuplicateAlert(result.existingItem.name);
+      showDuplicateAlert({
+        label: result.existingItem.name,
+        existingItemId: result.existingItem.id,
+        quantity: item.quantity ?? 1,
+      });
     } else {
       setShowAddInput(false);
+      if (result.item) {
+        void refineCategoriesWithAI([result.item]);
+      }
     }
   };
 
@@ -94,11 +147,15 @@ export default function ListPage() {
     const result = addItems(items);
     
     if (result.duplicates.length > 0) {
-      showDuplicateAlert(result.duplicates.join(', '));
+      showDuplicateAlert({ label: result.duplicates.join(', ') });
     }
     
     if (result.added.length > 0 || result.duplicates.length === items.length) {
       setShowAddInput(false);
+    }
+    
+    if (result.added.length > 0) {
+      void refineCategoriesWithAI(result.added);
     }
   };
 
@@ -281,15 +338,41 @@ export default function ListPage() {
           <div className="bg-orange-500 text-white rounded-xl p-4 shadow-lg flex items-center gap-3">
             <AlertCircle size={20} className="flex-shrink-0" />
             <div className="flex-1 min-w-0">
-              <p className="font-medium">{t.list.itemAlreadyExists || 'Item already exists'}</p>
-              <p className="text-sm text-white/80 truncate">{duplicateNotification}</p>
+              <p className="font-medium">{t.list.itemAlreadyExists}</p>
+              <p className="text-sm text-white/80 truncate">{duplicateNotification.label}</p>
             </div>
+            {duplicateNotification.existingItemId && (
+              <button
+                onClick={() => {
+                  increaseItemQuantity(
+                    duplicateNotification.existingItemId as string,
+                    duplicateNotification.quantity || 1
+                  );
+                  setDuplicateNotification(null);
+                  setShowAddInput(false);
+                }}
+                className="px-3 py-1.5 rounded-lg bg-white/20 hover:bg-white/30 text-sm font-medium whitespace-nowrap transition-colors"
+              >
+                +{duplicateNotification.quantity || 1}
+              </button>
+            )}
             <button
               onClick={() => setDuplicateNotification(null)}
               className="p-1 hover:bg-white/20 rounded-lg transition-colors"
+              aria-label={t.common.close}
             >
               <X size={18} />
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* AI categorization indicator */}
+      {isCategorizingWithAI && (
+        <div className="fixed bottom-24 left-4 right-4 z-40 flex justify-center pointer-events-none">
+          <div className="flex items-center gap-2 px-3 py-2 rounded-full bg-[var(--card)] border border-[var(--border)] shadow-lg text-sm text-[var(--muted-foreground)]">
+            <Sparkles size={14} className="text-emerald-500 animate-pulse" />
+            {t.list.aiCategorizing}
           </div>
         </div>
       )}
@@ -426,6 +509,22 @@ export default function ListPage() {
               {t.common.save}
             </Button>
           </div>
+
+          {/* Deleting used to be possible only by swiping, which is invisible on
+              desktop and hard to discover on touch */}
+          <Button
+            variant="ghost"
+            className="w-full text-red-500"
+            leftIcon={<Trash2 size={18} className="lucide-trash-2" />}
+            onClick={() => {
+              if (editingItem) {
+                removeItem(editingItem.id);
+                setEditingItem(null);
+              }
+            }}
+          >
+            {t.list.deleteItem}
+          </Button>
         </div>
       </Modal>
 

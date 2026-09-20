@@ -10,15 +10,15 @@ A modern, mobile-first Progressive Web App (PWA) for managing grocery lists with
 ## ✨ Features
 
 ### 📝 Smart Input & AI Categorization
-- **Paste full lists** - Copy from notes, messages, or anywhere and paste multiple items at once
-- **AI-powered categorization** - Uses Google Gemini to automatically categorize items
-- **Keyword fallback** - Works offline with smart keyword matching
+- **Paste full lists** - Copy from notes, messages, or anywhere and paste multiple items at once (one item per line, or separated by commas)
+- **Instant keyword categorization** - Every item is categorized immediately, offline
+- **AI refinement** - When a Gemini API key is configured, items the keyword matcher is unsure about are re-categorized in the background
 - **Quantity detection** - Recognizes patterns like "milk x3", "2kg apples", "טונה x8"
 
 ### 🛍️ Shopping Mode
 - **One-handed operation** - Large touch targets optimized for in-store use
 - **Tap to check off** - Quick item completion
-- **Swipe gestures** - Swipe left to mark as "Out of Stock"
+- **Swipe gestures** - Swipe left to mark as "Out of Stock" (in the list view, swipe left deletes an item)
 - **Progress tracking** - Visual progress bar shows completion status
 - **Picked items section** - Easily restore accidentally checked items
 
@@ -43,8 +43,8 @@ Pre-configured categories with smart defaults:
 - 📦 Other
 
 ### 💾 Data & Sharing
-- **Local storage** - All data stored locally on your device
-- **Share lists** - Generate share links or codes
+- **Local storage** - All data stored locally on your device; nothing is uploaded to a server
+- **Share lists** - Copy a link (or use the native share sheet) that recreates the list on someone else's device. The list is encoded in the link itself, so shared lists are snapshots, not live-synced copies
 - **Favorites** - Save frequently bought items for quick access
 
 ### 📱 PWA Features
@@ -125,7 +125,7 @@ To enable AI-powered categorization with Google Gemini:
 4. Enter your API key
 5. Click **Test Connection** to verify
 
-The app works perfectly without AI - it uses intelligent keyword matching as a fallback.
+The app works perfectly without AI - it uses intelligent keyword matching as a fallback. With AI enabled, items are still added instantly using keyword matching and are re-categorized in the background once Gemini answers.
 
 ## 🏗️ Project Structure
 
@@ -162,6 +162,15 @@ src/
 │   ├── en.ts             # English
 │   └── he.ts             # Hebrew
 └── types/                 # TypeScript types
+```
+
+## 🧪 Tests
+
+End-to-end tests run with Playwright against the dev server:
+
+```bash
+npm test          # headless
+npm run test:ui   # interactive
 ```
 
 ## 🛠️ Tech Stack

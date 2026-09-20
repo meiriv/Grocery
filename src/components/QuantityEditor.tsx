@@ -5,7 +5,7 @@ import { Minus, Plus, ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTranslation } from '@/hooks/useTranslation';
 import type { UnitType } from '@/types/grocery';
-import { units, formatQuantityWithUnit } from '@/lib/units';
+import { units, getUnit, formatQuantityWithUnit } from '@/lib/units';
 import { adjustQuantity, getAvailableUnitsForCategory } from '@/services/unit-resolver';
 
 interface QuantityEditorProps {
@@ -29,22 +29,24 @@ export function QuantityEditor({
 }: QuantityEditorProps) {
   const { language } = useTranslation();
   const [showUnitPicker, setShowUnitPicker] = useState(false);
+  // Local draft so the field can be cleared or hold "1." while typing a decimal
+  const [draft, setDraft] = useState<string | null>(null);
 
   const availableUnits = categoryId
     ? getAvailableUnitsForCategory(categoryId)
     : (Object.keys(units) as UnitType[]);
 
   const handleIncrement = () => {
-    const newQty = adjustQuantity(quantity, unit, 'up');
-    onQuantityChange(newQty);
+    setDraft(null);
+    onQuantityChange(adjustQuantity(quantity, unit, 'up'));
   };
 
   const handleDecrement = () => {
-    const newQty = adjustQuantity(quantity, unit, 'down');
-    onQuantityChange(newQty);
+    setDraft(null);
+    onQuantityChange(adjustQuantity(quantity, unit, 'down'));
   };
 
-  const unitData = units[unit];
+  const unitData = getUnit(unit);
   const shortName = unitData.shortName[language];
 
   if (compact) {
@@ -76,14 +78,23 @@ export function QuantityEditor({
         
         <input
           type="number"
-          value={quantity}
+          inputMode="decimal"
+          value={draft ?? quantity}
           onChange={(e) => {
-            const val = parseFloat(e.target.value);
+            const raw = e.target.value;
+            setDraft(raw);
+            
+            const val = parseFloat(raw);
             if (!isNaN(val) && val > 0) {
               onQuantityChange(val);
             }
           }}
+          onBlur={() => {
+            // Restore the last valid quantity if the field was left empty
+            setDraft(null);
+          }}
           disabled={disabled}
+          aria-label="Quantity"
           className={cn(
             'w-14 h-10 text-center bg-transparent',
             'text-[var(--foreground)] font-medium',
@@ -170,7 +181,7 @@ interface QuantityDisplayProps {
 export function QuantityDisplay({ quantity, unit, className, highlightMultiple = true }: QuantityDisplayProps) {
   const { language } = useTranslation();
   
-  const unitData = units[unit];
+  const unitData = getUnit(unit);
   const shortName = unitData.shortName[language];
   
   // Format the number nicely

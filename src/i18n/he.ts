@@ -21,6 +21,9 @@ export const he: TranslationKeys = {
     item: 'פריט',
     restore: 'שחזר',
     copy: 'העתק',
+    selected: 'נבחרו',
+    undo: 'בטל',
+    redo: 'בצע שוב',
   },
   home: {
     title: 'הרשימות שלי',
@@ -34,7 +37,7 @@ export const he: TranslationKeys = {
   list: {
     addItem: 'הוסף פריט...',
     addMultiple: 'הוסף מספר פריטים',
-    pasteListHint: 'הדבק את הרשימה שלך כאן...\nפריטים יכולים להיות מופרדים בשורות, פסיקים או רווחים',
+    pasteListHint: 'הדבק את הרשימה שלך כאן...\nפריט אחד בכל שורה, או מופרדים בפסיקים',
     emptyState: 'הרשימה ריקה',
     checkedItems: 'פריטים שנלקחו',
     outOfStock: 'אזל מהמלאי',
@@ -58,6 +61,12 @@ export const he: TranslationKeys = {
     deleteListConfirm: 'האם אתה בטוח שברצונך למחוק רשימה זו? לא ניתן לבטל פעולה זו.',
     itemAlreadyExists: 'הפריט כבר קיים ברשימה',
     duplicatesSkipped: 'חלק מהפריטים דולגו (כבר קיימים ברשימה)',
+    checkItem: 'סמן כנלקח',
+    uncheckItem: 'בטל סימון',
+    addToExisting: 'הוסף לפריט הקיים',
+    quantityIncreased: 'הכמות עודכנה',
+    aiCategorizing: 'משפר קטגוריות עם AI...',
+    favoritesAdded: '{{count}} מועדפים נוספו',
   },
   shopping: {
     title: 'מצב קניות',
@@ -97,6 +106,8 @@ export const he: TranslationKeys = {
     baking: 'אפייה',
     canned: 'שימורים',
     other: 'אחר',
+    defaultSection: 'ברירת מחדל',
+    customSection: 'מותאם אישית',
   },
   favorites: {
     title: 'מועדפים',
@@ -150,6 +161,7 @@ export const he: TranslationKeys = {
     clearData: 'מחק את כל הנתונים',
     clearDataConfirm: 'פעולה זו תמחק את כל הרשימות, המועדפים וההגדרות שלך. לא ניתן לבטל פעולה זו.',
     installApp: 'התקן אפליקציה',
+    dangerZone: 'אזור מסוכן',
     installDescription: 'התקן אפליקציה זו במכשיר שלך לחוויה טובה יותר',
   },
   units: {

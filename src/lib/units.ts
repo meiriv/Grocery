@@ -430,9 +430,18 @@ export function getAllUnits(): UnitType[] {
   return Object.keys(units) as UnitType[];
 }
 
-// Get unit by ID
-export function getUnit(unitId: UnitType): Unit {
-  return units[unitId];
+// Get unit by ID. Falls back to 'unit' so that data coming from shared links,
+// imported backups or older app versions can never crash the UI.
+export function getUnit(unitId: UnitType | string | undefined | null): Unit {
+  if (unitId && Object.prototype.hasOwnProperty.call(units, unitId)) {
+    return units[unitId as UnitType];
+  }
+  return units.unit;
+}
+
+// Check whether a value is a known unit type
+export function isValidUnit(unitId: unknown): unitId is UnitType {
+  return typeof unitId === 'string' && Object.prototype.hasOwnProperty.call(units, unitId);
 }
 
 // Get item unit default by name (checks both English and Hebrew)
@@ -458,7 +467,7 @@ export function formatQuantityWithUnit(
   unitType: UnitType,
   language: 'en' | 'he'
 ): string {
-  const unit = units[unitType];
+  const unit = getUnit(unitType);
   const shortName = unit.shortName[language];
   
   // Format the number nicely
