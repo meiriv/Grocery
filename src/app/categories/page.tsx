@@ -1,17 +1,18 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Plus, Edit3, Trash2, ChevronUp, ChevronDown, RotateCcw } from 'lucide-react';
+import { Plus, RotateCcw } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTranslation } from '@/hooks/useTranslation';
 import { useCategories } from '@/hooks/useCategories';
 import { BottomNav } from '@/components/BottomNav';
 import { FloatingAddButton } from '@/components/FloatingAddButton';
 import { Modal, ConfirmDialog } from '@/components/ui/Modal';
-import { Button, IconButton } from '@/components/ui/Button';
+import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { ColorPicker, Select } from '@/components/ui/Select';
 import { QuantityEditor } from '@/components/QuantityEditor';
+import { CategoryOrderList } from '@/components/CategoryOrderList';
 import { availableCategoryColors } from '@/lib/categories';
 import { units, getUnit } from '@/lib/units';
 import type { Category, UnitType } from '@/types/grocery';
@@ -25,6 +26,7 @@ export default function CategoriesPage() {
     removeCategory,
     isCustomCategory,
     moveCategory,
+    reorderCategories,
     resetCategoryOrder,
     hasCustomOrder,
   } = useCategories();
@@ -134,76 +136,14 @@ export default function CategoriesPage() {
             </p>
           </div>
 
-          <div className="space-y-2">
-            {categories.map((category, index) => {
-              const isCustom = isCustomCategory(category.id);
-
-              return (
-                <div
-                  key={category.id}
-                  className="flex items-center gap-2 p-3 bg-[var(--card)] rounded-xl border border-[var(--border)]"
-                >
-                  {/* Reorder controls */}
-                  <div className="flex flex-col flex-shrink-0">
-                    <button
-                      type="button"
-                      onClick={() => moveCategory(category.id, 'up')}
-                      disabled={index === 0}
-                      className="p-1 text-[var(--muted-foreground)] hover:text-[var(--foreground)] disabled:opacity-25 transition-colors"
-                      aria-label={`${t.categories.moveUp}: ${category.name[language]}`}
-                    >
-                      <ChevronUp size={18} />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => moveCategory(category.id, 'down')}
-                      disabled={index === categories.length - 1}
-                      className="p-1 text-[var(--muted-foreground)] hover:text-[var(--foreground)] disabled:opacity-25 transition-colors"
-                      aria-label={`${t.categories.moveDown}: ${category.name[language]}`}
-                    >
-                      <ChevronDown size={18} />
-                    </button>
-                  </div>
-
-                  <span
-                    className={cn('w-4 h-4 rounded-full flex-shrink-0', category.color)}
-                  />
-                  <span className="flex-1 min-w-0 font-medium text-[var(--foreground)] truncate">
-                    {category.name[language]}
-                  </span>
-
-                  {isCustom && (
-                    <span className="text-[10px] uppercase tracking-wide px-2 py-0.5 rounded-full bg-[var(--secondary)] text-[var(--muted-foreground)]">
-                      {t.categories.customSection}
-                    </span>
-                  )}
-
-                  <span className="text-sm text-[var(--muted-foreground)]">
-                    {getUnit(category.defaultUnit).shortName[language]}
-                  </span>
-
-                  {isCustom && (
-                    <div className="flex items-center gap-1">
-                      <IconButton
-                        onClick={() => handleEdit(category)}
-                        className="text-[var(--muted-foreground)]"
-                        aria-label={t.categories.editCategory}
-                      >
-                        <Edit3 size={18} />
-                      </IconButton>
-                      <IconButton
-                        onClick={() => setCategoryToDelete(category.id)}
-                        className="text-[var(--muted-foreground)] hover:text-red-500"
-                        aria-label={t.categories.deleteCategory}
-                      >
-                        <Trash2 size={18} />
-                      </IconButton>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
+          <CategoryOrderList
+            categories={categories}
+            isCustomCategory={isCustomCategory}
+            onReorder={reorderCategories}
+            onMove={moveCategory}
+            onEdit={handleEdit}
+            onDelete={setCategoryToDelete}
+          />
 
           {hasCustomOrder && (
             <Button

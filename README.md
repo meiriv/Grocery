@@ -16,7 +16,7 @@ A modern, mobile-first Progressive Web App (PWA) for managing grocery lists with
 - **Quantity detection** - Recognizes patterns like "milk x3", "2kg apples", "טונה x8"
 
 ### 🛍️ Shopping Mode
-- **Aisle order** - Arrange the categories on the Categories screen to match your route through the store; shopping mode (and the list) follow that order
+- **Aisle order** - Drag the categories on the Categories screen into the order you walk the store (or focus a handle and use the arrow keys); shopping mode and the list follow that order
 - **One-handed operation** - Large touch targets optimized for in-store use
 - **Tap to check off** - Quick item completion
 - **Swipe gestures** - Swipe left to mark as "Out of Stock" (in the list view, swipe left deletes an item)
