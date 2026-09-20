@@ -27,14 +27,16 @@ export function formatRelativeTime(date: Date, language: 'en' | 'he'): string {
     return language === 'en' ? 'Just now' : 'עכשיו';
   }
   if (diffMins < 60) {
-    return language === 'en' 
-      ? `${diffMins} min ago` 
-      : `לפני ${diffMins} דקות`;
+    if (language === 'en') {
+      return diffMins === 1 ? '1 min ago' : `${diffMins} min ago`;
+    }
+    return diffMins === 1 ? 'לפני דקה' : `לפני ${diffMins} דקות`;
   }
   if (diffHours < 24) {
-    return language === 'en' 
-      ? `${diffHours} hours ago` 
-      : `לפני ${diffHours} שעות`;
+    if (language === 'en') {
+      return diffHours === 1 ? '1 hour ago' : `${diffHours} hours ago`;
+    }
+    return diffHours === 1 ? 'לפני שעה' : `לפני ${diffHours} שעות`;
   }
   if (diffDays === 1) {
     return language === 'en' ? 'Yesterday' : 'אתמול';

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 
 interface UndoRedoState<T> {
   past: T[];
@@ -99,6 +99,13 @@ export function useUndoRedo<T>(initialState: T, maxHistory: number = 50): UseUnd
         future: newFuture,
       };
     });
+  }, []);
+
+  // Drop the pending debounce when the component goes away
+  useEffect(() => {
+    return () => {
+      if (debounceTimer.current) clearTimeout(debounceTimer.current);
+    };
   }, []);
 
   const reset = useCallback((initialState: T) => {

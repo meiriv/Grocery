@@ -15,7 +15,7 @@ export default function ShoppingModePage() {
   const params = useParams();
   const id = params.id as string;
   const router = useRouter();
-  const { t, language, interpolate, isRTL } = useTranslation();
+  const { t, language, interpolate } = useTranslation();
   const { categories, getCategory } = useCategories();
   const {
     list,
@@ -35,10 +35,32 @@ export default function ShoppingModePage() {
     return groupBy(pendingItems, (item) => item.categoryId);
   }, [pendingItems]);
 
-  // Get active categories
-  const activeCategories = useMemo(() => {
-    return categories.filter((cat) => groupedItems[cat.id]?.length > 0);
-  }, [categories, groupedItems]);
+  // Get active categories, plus a fallback group for items whose category no
+  // longer exists so that they are never hidden while shopping.
+  const activeGroups = useMemo(() => {
+    const groups = categories
+      .filter((cat) => groupedItems[cat.id]?.length > 0)
+      .map((cat) => ({
+        id: cat.id,
+        name: cat.name[language],
+        color: cat.color,
+        items: groupedItems[cat.id],
+      }));
+
+    const knownIds = new Set(categories.map((cat) => cat.id));
+    const orphanItems = pendingItems.filter((item) => !knownIds.has(item.categoryId));
+
+    if (orphanItems.length > 0) {
+      groups.push({
+        id: '__uncategorized__',
+        name: t.list.uncategorized,
+        color: 'bg-slate-500',
+        items: orphanItems,
+      });
+    }
+
+    return groups;
+  }, [categories, groupedItems, pendingItems, language, t]);
 
   const handleComplete = () => {
     vibrate(30);
@@ -141,8 +163,8 @@ export default function ShoppingModePage() {
             </div>
 
             {/* Items by category */}
-            {activeCategories.map((category) => {
-              const items = groupedItems[category.id] || [];
+            {activeGroups.map((category) => {
+              const items = category.items;
               
               return (
                 <div key={category.id}>
@@ -151,7 +173,7 @@ export default function ShoppingModePage() {
                       className={cn('w-4 h-4 rounded-full', category.color)}
                     />
                     <span className="font-semibold text-[var(--foreground)]">
-                      {category.name[language]}
+                      {category.name}
                     </span>
                     <span className="text-sm text-[var(--muted-foreground)]">
                       ({items.length})

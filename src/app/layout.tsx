@@ -56,6 +56,11 @@ export default function RootLayout({
         <meta name="mobile-web-app-capable" content="yes" />
       </head>
       <body className={`${inter.variable} ${jetbrainsMono.variable} antialiased`}>
+        {/* Apply the stored theme and text direction before first paint so the
+            app does not flash the wrong colours or direction on start-up. */}
+        <Script id="app-appearance" strategy="beforeInteractive">
+          {`(function(){try{var s=JSON.parse(localStorage.getItem('grocery-settings')||'{}');var d=document.documentElement;var t=s.theme||'dark';var dark=t==='dark'||(t==='system'&&window.matchMedia('(prefers-color-scheme: dark)').matches);d.classList.toggle('dark',dark);var lang=s.language==='he'?'he':'en';d.setAttribute('lang',lang);d.setAttribute('dir',lang==='he'?'rtl':'ltr');}catch(e){}})();`}
+        </Script>
         <SettingsProvider>
           <TranslationProvider>
             {children}

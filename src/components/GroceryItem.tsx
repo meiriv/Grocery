@@ -86,22 +86,39 @@ export function GroceryItem({
           transform: `translateX(${state.translateX}px)`,
         }}
       >
-        {/* Checkbox indicator */}
-        <div
-          className={cn(
-            'w-6 h-6 rounded-full border-2 flex-shrink-0',
-            'flex items-center justify-center',
-            'transition-all duration-200',
-            isChecked
-              ? 'bg-emerald-500 border-emerald-500'
-              : isOutOfStock
-              ? 'border-orange-500'
-              : 'border-[var(--border)]'
-          )}
+        {/* Checkbox - tapping only this control toggles the item, so that
+            scrolling or swiping the row never checks something by accident */}
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            vibrate(10);
+            onToggleChecked();
+          }}
+          onTouchStart={(e) => e.stopPropagation()}
+          onTouchMove={(e) => e.stopPropagation()}
+          onTouchEnd={(e) => e.stopPropagation()}
+          role="checkbox"
+          aria-checked={isChecked}
+          aria-label={isChecked ? t.list.uncheckItem : t.list.checkItem}
+          className="flex-shrink-0 p-2 -m-2 flex items-center justify-center"
         >
-          {isChecked && <Check size={14} className="text-white" />}
-          {isOutOfStock && <AlertTriangle size={12} className="text-orange-500" />}
-        </div>
+          <span
+            className={cn(
+              'w-6 h-6 rounded-full border-2',
+              'flex items-center justify-center',
+              'transition-all duration-200',
+              isChecked
+                ? 'bg-emerald-500 border-emerald-500'
+                : isOutOfStock
+                ? 'border-orange-500'
+                : 'border-[var(--border)]'
+            )}
+          >
+            {isChecked && <Check size={14} className="text-white" />}
+            {isOutOfStock && <AlertTriangle size={12} className="text-orange-500" />}
+          </span>
+        </button>
 
         {/* Item details */}
         <div className="flex-1 min-w-0">
@@ -193,10 +210,11 @@ export function ShoppingItem({
   onToggleChecked,
   onMarkOutOfStock,
 }: ShoppingItemProps) {
-  const { t, isRTL } = useTranslation();
   const { getCategory } = useCategories();
   const category = getCategory(item.categoryId);
 
+  // The hook fires onTap for touch taps and for mouse clicks, and ignores the
+  // synthetic click that follows a touch - so an item is never toggled twice.
   const { handlers, state } = useSwipeGesture({
     threshold: 100,
     onSwipeLeft: () => {
@@ -213,22 +231,26 @@ export function ShoppingItem({
   const isChecked = item.status === 'checked';
   const isOutOfStock = item.status === 'out_of_stock';
 
-  // Handle click for desktop (tap handles mobile)
-  const handleClick = () => {
-    vibrate(15);
-    onToggleChecked();
-  };
-
   return (
     <div
       {...handlers}
-      onClick={handleClick}
+      role="checkbox"
+      aria-checked={isChecked}
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          vibrate(15);
+          onToggleChecked();
+        }
+      }}
       className={cn(
         'relative flex items-center gap-4 p-5',
         'bg-[var(--card)] rounded-2xl',
         'border-2 transition-all duration-200',
         'cursor-pointer select-none',
         'min-h-[72px]',
+        'focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500',
         'active:scale-[0.98]', // Visual feedback on press
         isChecked
           ? 'border-emerald-500/30 bg-emerald-500/10 opacity-60'

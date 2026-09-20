@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { Globe, Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTranslation } from '@/hooks/useTranslation';
-import { languageConfig, type Language } from '@/i18n';
+import { type Language } from '@/i18n';
 
 interface LanguageSwitcherProps {
   variant?: 'button' | 'dropdown' | 'inline';

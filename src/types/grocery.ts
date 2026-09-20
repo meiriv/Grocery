@@ -108,20 +108,45 @@ export interface SerializedFrequentItem extends Omit<FrequentItem, 'lastUsed'> {
   lastUsed: string;
 }
 
+// Coerce a value that may already be a Date, an ISO string (e.g. data that
+// round-tripped through JSON in a backup file) or missing, into a valid Date.
+function toDate(value: Date | string | number | undefined | null): Date {
+  if (value instanceof Date && !isNaN(value.getTime())) return value;
+  if (typeof value === 'string' || typeof value === 'number') {
+    const parsed = new Date(value);
+    if (!isNaN(parsed.getTime())) return parsed;
+  }
+  return new Date();
+}
+
+function toISOString(value: Date | string | number | undefined | null): string {
+  return toDate(value).toISOString();
+}
+
+function toOptionalDate(value: Date | string | number | undefined | null): Date | undefined {
+  if (value === undefined || value === null) return undefined;
+  return toDate(value);
+}
+
+function toOptionalISOString(value: Date | string | number | undefined | null): string | undefined {
+  if (value === undefined || value === null) return undefined;
+  return toDate(value).toISOString();
+}
+
 // Helper functions for serialization
 export function serializeGroceryItem(item: GroceryItem): SerializedGroceryItem {
   return {
     ...item,
-    addedAt: item.addedAt.toISOString(),
-    checkedAt: item.checkedAt?.toISOString(),
+    addedAt: toISOString(item.addedAt),
+    checkedAt: toOptionalISOString(item.checkedAt),
   };
 }
 
 export function deserializeGroceryItem(item: SerializedGroceryItem): GroceryItem {
   return {
     ...item,
-    addedAt: new Date(item.addedAt),
-    checkedAt: item.checkedAt ? new Date(item.checkedAt) : undefined,
+    addedAt: toDate(item.addedAt),
+    checkedAt: toOptionalDate(item.checkedAt),
   };
 }
 
@@ -129,45 +154,45 @@ export function serializeGroceryList(list: GroceryList): SerializedGroceryList {
   return {
     ...list,
     items: list.items.map(serializeGroceryItem),
-    createdAt: list.createdAt.toISOString(),
-    updatedAt: list.updatedAt.toISOString(),
+    createdAt: toISOString(list.createdAt),
+    updatedAt: toISOString(list.updatedAt),
   };
 }
 
 export function deserializeGroceryList(list: SerializedGroceryList): GroceryList {
   return {
     ...list,
-    items: list.items.map(deserializeGroceryItem),
-    createdAt: new Date(list.createdAt),
-    updatedAt: new Date(list.updatedAt),
+    items: (list.items || []).map(deserializeGroceryItem),
+    createdAt: toDate(list.createdAt),
+    updatedAt: toDate(list.updatedAt),
   };
 }
 
 export function serializeFavoriteItem(item: FavoriteItem): SerializedFavoriteItem {
   return {
     ...item,
-    addedAt: item.addedAt.toISOString(),
+    addedAt: toISOString(item.addedAt),
   };
 }
 
 export function deserializeFavoriteItem(item: SerializedFavoriteItem): FavoriteItem {
   return {
     ...item,
-    addedAt: new Date(item.addedAt),
+    addedAt: toDate(item.addedAt),
   };
 }
 
 export function serializeFrequentItem(item: FrequentItem): SerializedFrequentItem {
   return {
     ...item,
-    lastUsed: item.lastUsed.toISOString(),
+    lastUsed: toISOString(item.lastUsed),
   };
 }
 
 export function deserializeFrequentItem(item: SerializedFrequentItem): FrequentItem {
   return {
     ...item,
-    lastUsed: new Date(item.lastUsed),
+    lastUsed: toDate(item.lastUsed),
   };
 }
 

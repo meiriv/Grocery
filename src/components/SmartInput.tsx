@@ -141,8 +141,13 @@ export function SmartInput({
     resetHistory('');
     setParsedItems([]);
     setShowPreview(false);
-    setIsMultiLine(false);
-    inputRef.current?.focus();
+    
+    // Keep the current input mode so the next item can be typed right away
+    if (isMultiLine) {
+      textareaRef.current?.focus();
+    } else {
+      inputRef.current?.focus();
+    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -179,17 +184,24 @@ export function SmartInput({
     }
   };
 
+  // Turn a parsed item back into text the parser understands, so that removing
+  // one item from the preview does not drop the quantities of the others.
+  const itemToText = (item: ParsedItem): string => {
+    if (item.quantity === 1) return item.name;
+    if (item.unit === 'unit') return `${item.name} x${item.quantity}`;
+    return `${item.name} ${item.quantity}${item.unit}`;
+  };
+
   const removePreviewItem = (index: number) => {
     const newItems = parsedItems.filter((_, i) => i !== index);
     setParsedItems(newItems);
     
     // Update input value
-    const newValue = newItems.map(i => i.name).join(isMultiLine ? '\n' : ', ');
+    const newValue = newItems.map(itemToText).join(isMultiLine ? '\n' : ', ');
     setValue(newValue, false); // Save to history
     
     if (newItems.length === 0) {
       setShowPreview(false);
-      setIsMultiLine(false);
     }
   };
 
@@ -288,7 +300,8 @@ export function SmartInput({
                     'hover:bg-[var(--accent)] hover:text-[var(--foreground)]',
                     'disabled:opacity-30 disabled:cursor-not-allowed'
                   )}
-                  title="Undo (Ctrl+Z)"
+                  title={`${t.common.undo} (Ctrl+Z)`}
+                  aria-label={t.common.undo}
                 >
                   <Undo2 size={16} />
                 </button>
@@ -304,7 +317,8 @@ export function SmartInput({
                     'hover:bg-[var(--accent)] hover:text-[var(--foreground)]',
                     'disabled:opacity-30 disabled:cursor-not-allowed'
                   )}
-                  title="Redo (Ctrl+Shift+Z)"
+                  title={`${t.common.redo} (Ctrl+Shift+Z)`}
+                  aria-label={t.common.redo}
                 >
                   <Redo2 size={16} />
                 </button>
@@ -327,6 +341,7 @@ export function SmartInput({
                     'hover:bg-red-500/20 hover:text-red-500'
                   )}
                   title={t.common.close}
+                  aria-label={t.common.close}
                 >
                   <X size={16} />
                 </button>
@@ -391,6 +406,7 @@ export function SmartInput({
                 'hover:bg-[var(--accent)] hover:text-[var(--foreground)]'
               )}
               title={t.list.addMultiple}
+              aria-label={t.list.addMultiple}
             >
               <List size={20} className="lucide-list" />
             </button>

@@ -5,7 +5,7 @@ import { Globe, Moon, Sun, Monitor, Sparkles, Key, ExternalLink, Trash2, Check, 
 import { cn } from '@/lib/utils';
 import { useTranslation } from '@/hooks/useTranslation';
 import { useSettings, useTheme, useAISettings } from '@/hooks/useSettings';
-import { storeApiKey, clearApiKey, validateApiKey, hasApiKey } from '@/services/secure-storage';
+import { storeApiKey, clearApiKey, validateApiKey, hasApiKey, clearAllSecureStorage } from '@/services/secure-storage';
 import { clearAllData } from '@/services/storage';
 import { BottomNav } from '@/components/BottomNav';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
@@ -47,7 +47,9 @@ export default function SettingsPage() {
         await storeApiKey(apiKeyInput.trim());
         setKeyTestResult('success');
         setHasStoredKey(true);
-        updateSettings({ hasApiKey: true });
+        // A verified key means the user wants AI categorization - switch it on
+        // instead of leaving them with a stored key that does nothing.
+        updateSettings({ hasApiKey: true, aiEnabled: true });
         
         setTimeout(() => {
           setShowApiKeyModal(false);
@@ -58,6 +60,7 @@ export default function SettingsPage() {
         setKeyTestResult('error');
       }
     } catch (error) {
+      console.error('Failed to save API key:', error);
       setKeyTestResult('error');
     } finally {
       setIsTestingKey(false);
@@ -71,7 +74,14 @@ export default function SettingsPage() {
     setShowRemoveKeyConfirm(false);
   };
 
-  const handleClearAllData = () => {
+  const handleClearAllData = async () => {
+    // Also drop the encryption key in IndexedDB, otherwise "clear all data"
+    // leaves secrets behind
+    try {
+      await clearAllSecureStorage();
+    } catch (error) {
+      console.error('Failed to clear secure storage:', error);
+    }
     clearAllData();
     window.location.reload();
   };
@@ -94,6 +104,8 @@ export default function SettingsPage() {
     <div className="min-h-screen bg-[var(--background)]">
       {/* Header */}
       <header className="sticky top-0 z-30 bg-[var(--background)]/80 backdrop-blur-lg border-b border-[var(--border)]">
+        {/* Safe area spacer for iPhone notch/dynamic island */}
+        <div className="h-[calc(env(safe-area-inset-top,0px)+12px)]" />
         <div className="px-4 py-4">
           <h1 className="text-2xl font-bold text-[var(--foreground)]">
             {t.settings.title}
@@ -163,7 +175,11 @@ export default function SettingsPage() {
                     {t.settings.aiCategorization}
                   </h3>
                   <p className="text-sm text-[var(--muted-foreground)]">
-                    {hasStoredKey ? t.settings.apiKeySet : t.settings.aiDisabled}
+                    {aiEnabled && hasStoredKey
+                      ? t.settings.aiDescription
+                      : hasStoredKey
+                      ? t.settings.aiDisabled
+                      : t.settings.aiDisabled}
                   </p>
                 </div>
               </div>
@@ -231,7 +247,7 @@ export default function SettingsPage() {
           <section className="bg-red-500/10 rounded-2xl border border-red-500/30 p-4">
             <div className="flex items-center gap-3 mb-4">
               <AlertTriangle size={20} className="text-red-500" />
-              <h3 className="font-semibold text-red-500">Danger Zone</h3>
+              <h3 className="font-semibold text-red-500">{t.settings.dangerZone}</h3>
             </div>
             <Button
               variant="danger"
@@ -329,7 +345,7 @@ export default function SettingsPage() {
       <ConfirmDialog
         isOpen={showClearDataConfirm}
         onClose={() => setShowClearDataConfirm(false)}
-        onConfirm={handleClearAllData}
+        onConfirm={() => void handleClearAllData()}
         title={t.settings.clearData}
         message={t.settings.clearDataConfirm}
         confirmText={t.common.delete}

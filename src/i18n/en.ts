@@ -19,6 +19,9 @@ export const en = {
     item: 'item',
     restore: 'Restore',
     copy: 'Copy',
+    selected: 'selected',
+    undo: 'Undo',
+    redo: 'Redo',
   },
   home: {
     title: 'My Lists',
@@ -32,7 +35,7 @@ export const en = {
   list: {
     addItem: 'Add item...',
     addMultiple: 'Add multiple items',
-    pasteListHint: 'Paste your list here...\nItems can be separated by new lines, commas, or spaces',
+    pasteListHint: 'Paste your list here...\nOne item per line, or separated by commas',
     emptyState: 'Your list is empty',
     checkedItems: 'Checked Items',
     outOfStock: 'Out of Stock',
@@ -56,6 +59,12 @@ export const en = {
     deleteListConfirm: 'Are you sure you want to delete this list? This action cannot be undone.',
     itemAlreadyExists: 'Item already exists in the list',
     duplicatesSkipped: 'Some items were skipped (already in list)',
+    checkItem: 'Mark as picked',
+    uncheckItem: 'Mark as not picked',
+    addToExisting: 'Add to existing item',
+    quantityIncreased: 'Quantity updated',
+    aiCategorizing: 'Improving categories with AI...',
+    favoritesAdded: '{{count}} favorites added',
   },
   shopping: {
     title: 'Shopping Mode',
@@ -95,6 +104,8 @@ export const en = {
     baking: 'Baking',
     canned: 'Canned',
     other: 'Other',
+    defaultSection: 'Default',
+    customSection: 'Custom',
   },
   favorites: {
     title: 'Favorites',
@@ -149,6 +160,7 @@ export const en = {
     clearDataConfirm: 'This will delete all your lists, favorites, and settings. This cannot be undone.',
     installApp: 'Install App',
     installDescription: 'Install this app on your device for a better experience',
+    dangerZone: 'Danger Zone',
   },
   units: {
     unit: 'Units',

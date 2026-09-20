@@ -33,10 +33,16 @@ export function useGroceryList(listId: string | null) {
     setIsLoading(false);
   }, [listId]);
 
-  // Save list whenever it changes
-  const persistList = useCallback((updatedList: GroceryList) => {
-    saveList(updatedList);
-    setList(updatedList);
+  // Apply a change to the current list and persist it. The updater receives the
+  // latest state, so updates that happen close together (or asynchronously, e.g.
+  // when AI categorization comes back) can never overwrite each other.
+  const persistList = useCallback((updater: (current: GroceryList) => GroceryList) => {
+    setList(prev => {
+      if (!prev) return prev;
+      const next = updater(prev);
+      saveList(next);
+      return next;
+    });
   }, []);
 
   // Check if item already exists in list (case-insensitive)
@@ -83,13 +89,11 @@ export function useGroceryList(listId: string | null) {
     // Track usage for frequent items
     trackItemUsage(newItem.name, newItem.categoryId, newItem.quantity, newItem.unit);
     
-    const updatedList: GroceryList = {
-      ...list,
-      items: [...list.items, newItem],
+    persistList(current => ({
+      ...current,
+      items: [...current.items, newItem],
       updatedAt: new Date(),
-    };
-    
-    persistList(updatedList);
+    }));
     return { item: newItem, isDuplicate: false };
   }, [list, persistList, findExistingItem]);
 
@@ -142,13 +146,11 @@ export function useGroceryList(listId: string | null) {
     }
     
     if (newItems.length > 0) {
-      const updatedList: GroceryList = {
-        ...list,
-        items: [...list.items, ...newItems],
+      persistList(current => ({
+        ...current,
+        items: [...current.items, ...newItems],
         updatedAt: new Date(),
-      };
-      
-      persistList(updatedList);
+      }));
     }
     
     return { added: newItems, duplicates };
@@ -156,121 +158,116 @@ export function useGroceryList(listId: string | null) {
 
   // Update item
   const updateItem = useCallback((itemId: string, updates: Partial<GroceryItem>) => {
-    if (!list) return;
-    
-    const updatedItems = list.items.map(item =>
-      item.id === itemId ? { ...item, ...updates } : item
-    );
-    
-    const updatedList: GroceryList = {
-      ...list,
-      items: updatedItems,
+    persistList(current => ({
+      ...current,
+      items: current.items.map(item =>
+        item.id === itemId ? { ...item, ...updates } : item
+      ),
       updatedAt: new Date(),
-    };
+    }));
+  }, [persistList]);
+
+  // Update several items at once (a single save, no lost updates)
+  const updateItems = useCallback((
+    updates: Array<{ id: string; changes: Partial<GroceryItem> }>
+  ) => {
+    if (updates.length === 0) return;
     
-    persistList(updatedList);
-  }, [list, persistList]);
+    const byId = new Map(updates.map(u => [u.id, u.changes]));
+    
+    persistList(current => ({
+      ...current,
+      items: current.items.map(item => {
+        const changes = byId.get(item.id);
+        return changes ? { ...item, ...changes } : item;
+      }),
+      updatedAt: new Date(),
+    }));
+  }, [persistList]);
+
+  // Increase the quantity of an existing item (used when adding a duplicate)
+  const increaseItemQuantity = useCallback((itemId: string, amount: number = 1) => {
+    persistList(current => ({
+      ...current,
+      items: current.items.map(item =>
+        item.id === itemId
+          ? { ...item, quantity: item.quantity + amount }
+          : item
+      ),
+      updatedAt: new Date(),
+    }));
+  }, [persistList]);
 
   // Remove item
   const removeItem = useCallback((itemId: string) => {
-    if (!list) return;
-    
-    const updatedList: GroceryList = {
-      ...list,
-      items: list.items.filter(item => item.id !== itemId),
+    persistList(current => ({
+      ...current,
+      items: current.items.filter(item => item.id !== itemId),
       updatedAt: new Date(),
-    };
-    
-    persistList(updatedList);
-  }, [list, persistList]);
+    }));
+  }, [persistList]);
 
   // Toggle item checked status
   const toggleItemChecked = useCallback((itemId: string) => {
-    if (!list) return;
-    
-    const updatedItems = list.items.map(item => {
-      if (item.id !== itemId) return item;
-      
-      const newStatus: 'pending' | 'checked' = item.status === 'checked' ? 'pending' : 'checked';
-      return {
-        ...item,
-        status: newStatus,
-        checkedAt: newStatus === 'checked' ? new Date() : undefined,
-      };
-    });
-    
-    const updatedList: GroceryList = {
-      ...list,
-      items: updatedItems,
+    persistList(current => ({
+      ...current,
+      items: current.items.map(item => {
+        if (item.id !== itemId) return item;
+        
+        const newStatus: 'pending' | 'checked' = item.status === 'checked' ? 'pending' : 'checked';
+        return {
+          ...item,
+          status: newStatus,
+          checkedAt: newStatus === 'checked' ? new Date() : undefined,
+        };
+      }),
       updatedAt: new Date(),
-    };
-    
-    persistList(updatedList);
-  }, [list, persistList]);
+    }));
+  }, [persistList]);
 
   // Mark item as out of stock
   const markOutOfStock = useCallback((itemId: string) => {
-    if (!list) return;
-    
-    const updatedItems = list.items.map(item =>
-      item.id === itemId
-        ? { ...item, status: 'out_of_stock' as const }
-        : item
-    );
-    
-    const updatedList: GroceryList = {
-      ...list,
-      items: updatedItems,
+    persistList(current => ({
+      ...current,
+      items: current.items.map(item =>
+        item.id === itemId
+          ? { ...item, status: 'out_of_stock' as const }
+          : item
+      ),
       updatedAt: new Date(),
-    };
-    
-    persistList(updatedList);
-  }, [list, persistList]);
+    }));
+  }, [persistList]);
 
   // Clear all checked items
   const clearChecked = useCallback(() => {
-    if (!list) return;
-    
-    const updatedList: GroceryList = {
-      ...list,
-      items: list.items.filter(item => item.status !== 'checked'),
+    persistList(current => ({
+      ...current,
+      items: current.items.filter(item => item.status !== 'checked'),
       updatedAt: new Date(),
-    };
-    
-    persistList(updatedList);
-  }, [list, persistList]);
+    }));
+  }, [persistList]);
 
   // Uncheck all items
   const uncheckAll = useCallback(() => {
-    if (!list) return;
-    
-    const updatedItems = list.items.map(item => ({
-      ...item,
-      status: 'pending' as const,
-      checkedAt: undefined,
-    }));
-    
-    const updatedList: GroceryList = {
-      ...list,
-      items: updatedItems,
+    persistList(current => ({
+      ...current,
+      items: current.items.map(item => ({
+        ...item,
+        status: 'pending' as const,
+        checkedAt: undefined,
+      })),
       updatedAt: new Date(),
-    };
-    
-    persistList(updatedList);
-  }, [list, persistList]);
+    }));
+  }, [persistList]);
 
   // Update list name
   const updateListName = useCallback((name: string) => {
-    if (!list) return;
-    
-    const updatedList: GroceryList = {
-      ...list,
+    persistList(current => ({
+      ...current,
       name,
       updatedAt: new Date(),
-    };
-    
-    persistList(updatedList);
-  }, [list, persistList]);
+    }));
+  }, [persistList]);
 
   // Delete entire list
   const deleteList = useCallback(() => {
@@ -308,6 +305,8 @@ export function useGroceryList(listId: string | null) {
     addItem,
     addItems,
     updateItem,
+    updateItems,
+    increaseItemQuantity,
     removeItem,
     toggleItemChecked,
     markOutOfStock,

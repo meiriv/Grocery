@@ -57,6 +57,21 @@ async function createTestList(page: Page, listName: string = 'Test Shopping List
   await waitForAppReady(page);
 }
 
+// Helper to add one or more items through the smart input. The input renders as
+// a textarea in multi-line mode (the default) and as a text input otherwise, so
+// the helper works with whichever one is on screen.
+async function addItemsViaInput(page: Page, text: string) {
+  const fabButton = page.locator('button.fixed, button[class*="fixed"]').first();
+  await fabButton.click();
+
+  const field = page.locator('form textarea, form input[type="text"]').first();
+  await field.waitFor({ state: 'visible' });
+  await field.fill(text);
+
+  await page.locator('form button[type="submit"]').click();
+  await page.waitForTimeout(300);
+}
+
 // ============================================================================
 // TEST SUITE: HOME PAGE - LIST MANAGEMENT
 // ============================================================================
@@ -137,64 +152,30 @@ test.describe('List Page - Item Management', () => {
   });
 
   test('should add a single item to the list', async ({ page }) => {
-    // Click the floating add button
-    const fabButton = page.locator('button.fixed, button[class*="fixed"]').first();
-    await fabButton.click();
-    
-    // Wait for input to appear
-    await page.waitForSelector('input, textarea', { state: 'visible' });
-    
-    // Type item name and submit
-    const input = page.locator('form input, form textarea').first();
-    await input.fill('Milk');
-    await page.locator('form button[type="submit"]').click();
+    await addItemsViaInput(page, 'Milk');
     
     // Verify item was added
     await expect(page.getByText('Milk')).toBeVisible();
   });
 
   test('should add multiple items at once', async ({ page }) => {
-    // Click add button
-    const fabButton = page.locator('button.fixed, button[class*="fixed"]').first();
-    await fabButton.click();
-    await page.waitForSelector('input, textarea', { state: 'visible' });
+    await addItemsViaInput(page, 'Bread\nEggs\nButter');
     
-    // Click the multi-line toggle button (list icon)
-    const multiLineButton = page.locator('button:has(svg.lucide-list)');
-    if (await multiLineButton.isVisible()) {
-      await multiLineButton.click();
-      await page.waitForTimeout(300);
-    }
-    
-    // Enter multiple items
-    const textarea = page.locator('textarea');
-    if (await textarea.isVisible()) {
-      await textarea.fill('Bread\nEggs\nButter');
-      
-      // Submit using the Add button
-      await page.locator('form button[type="submit"]').click();
-      
-      // Verify items were added
-      await expect(page.getByText('Bread')).toBeVisible();
-      await expect(page.getByText('Eggs')).toBeVisible();
-      await expect(page.getByText('Butter')).toBeVisible();
-    }
+    // Verify items were added
+    await expect(page.getByText('Bread')).toBeVisible();
+    await expect(page.getByText('Eggs')).toBeVisible();
+    await expect(page.getByText('Butter')).toBeVisible();
   });
 
   test('should delete an item', async ({ page }) => {
     // First add an item
-    const fabButton = page.locator('button.fixed, button[class*="fixed"]').first();
-    await fabButton.click();
-    await page.waitForSelector('input', { state: 'visible' });
-    
-    const input = page.locator('form input').first();
-    await input.fill('Item To Delete');
-    await page.locator('form button[type="submit"]').click();
+    await addItemsViaInput(page, 'Item To Delete');
     await expect(page.getByText('Item To Delete')).toBeVisible();
     
-    // Find and click delete button (trash icon)
-    const deleteButton = page.locator('button:has(svg.lucide-trash-2)').first();
-    await deleteButton.click();
+    // Open the item editor and delete it from there
+    await page.locator('button:has(svg.lucide-edit-3)').first().click();
+    await page.waitForSelector('[role="dialog"]', { state: 'visible' });
+    await page.locator('[role="dialog"] button:has(svg.lucide-trash-2)').click();
     
     // Item should be removed
     await expect(page.getByText('Item To Delete')).not.toBeVisible({ timeout: 5000 });
@@ -202,13 +183,7 @@ test.describe('List Page - Item Management', () => {
 
   test('should add item to favorites', async ({ page }) => {
     // First add an item
-    const fabButton = page.locator('button.fixed, button[class*="fixed"]').first();
-    await fabButton.click();
-    await page.waitForSelector('input', { state: 'visible' });
-    
-    const input = page.locator('form input').first();
-    await input.fill('Favorite Item');
-    await page.locator('form button[type="submit"]').click();
+    await addItemsViaInput(page, 'Favorite Item');
     await expect(page.getByText('Favorite Item')).toBeVisible();
     
     // Find and click favorite button (heart icon)
@@ -221,13 +196,7 @@ test.describe('List Page - Item Management', () => {
 
   test('should edit an item', async ({ page }) => {
     // First add an item
-    const fabButton = page.locator('button.fixed, button[class*="fixed"]').first();
-    await fabButton.click();
-    await page.waitForSelector('input', { state: 'visible' });
-    
-    const input = page.locator('form input').first();
-    await input.fill('Original Name');
-    await page.locator('form button[type="submit"]').click();
+    await addItemsViaInput(page, 'Original Name');
     await expect(page.getByText('Original Name')).toBeVisible();
     
     // Find and click edit button
@@ -251,11 +220,11 @@ test.describe('List Page - Item Management', () => {
 
   test('should rename the list', async ({ page }) => {
     // Open menu
-    await page.locator('button:has(svg.lucide-more-vertical)').click();
+    await page.locator('header button:has(svg.lucide-more-vertical)').click();
     await page.waitForTimeout(300);
     
-    // Click edit option - first one in menu
-    await page.locator('button:has(svg.lucide-edit-3)').first().click();
+    // Click edit option in the menu
+    await page.locator('header button:has(svg.lucide-edit-3)').first().click();
     
     // Wait for modal
     await page.waitForSelector('[role="dialog"]', { state: 'visible' });
@@ -282,26 +251,7 @@ test.describe('Shopping Mode', () => {
     await createTestList(page, 'Shopping Test List');
     
     // Add some items
-    const fabButton = page.locator('button.fixed, button[class*="fixed"]').first();
-    await fabButton.click();
-    await page.waitForSelector('input, textarea', { state: 'visible' });
-    
-    const multiLineButton = page.locator('button:has(svg.lucide-list)');
-    if (await multiLineButton.isVisible()) {
-      await multiLineButton.click();
-      await page.waitForTimeout(300);
-    }
-    
-    const textarea = page.locator('textarea');
-    if (await textarea.isVisible()) {
-      await textarea.fill('Apples\nBananas\nOranges');
-      await page.locator('form button[type="submit"]').click();
-    } else {
-      // Fallback: add items one by one
-      const input = page.locator('form input').first();
-      await input.fill('Apples');
-      await page.locator('form button[type="submit"]').click();
-    }
+    await addItemsViaInput(page, 'Apples\nBananas\nOranges');
     
     await waitForAppReady(page);
   });
@@ -518,7 +468,7 @@ test.describe('Language Switching', () => {
       await expect(page.locator('html')).toHaveAttribute('dir', 'rtl');
       
       // Switch back to English
-      const englishButton = page.locator('button').filter({ hasText: /EN/ }).first();
+      const englishButton = page.locator('button').filter({ hasText: /English/ }).first();
       await englishButton.click();
       await page.waitForTimeout(500);
       
@@ -537,7 +487,7 @@ test.describe('Share Functionality', () => {
     await createTestList(page, 'Share Test List');
     
     // Open menu
-    await page.locator('button:has(svg.lucide-more-vertical)').click();
+    await page.locator('header button:has(svg.lucide-more-vertical)').click();
     await page.waitForTimeout(300);
     
     // Click share option
@@ -548,6 +498,67 @@ test.describe('Share Functionality', () => {
       // Share modal should appear
       await page.waitForSelector('[role="dialog"]', { state: 'visible' });
     }
+  });
+});
+
+// ============================================================================
+// TEST SUITE: REGRESSIONS
+// ============================================================================
+test.describe('Shopping Mode on a touch device', () => {
+  // Touch emulation so that page.tap() fires touch events (plus the click the
+  // browser synthesizes afterwards), like a real phone does.
+  test.use({ hasTouch: true, viewport: { width: 393, height: 851 } });
+
+  test('tapping an item checks it off and it stays checked', async ({ page }) => {
+    await createTestList(page, 'Touch Shopping List');
+    await addItemsViaInput(page, 'Apples\nBananas');
+    await waitForAppReady(page);
+
+    // Enter shopping mode
+    await page.locator('button:has(svg.lucide-shopping-bag)').click();
+    await waitForAppReady(page);
+
+    const item = page.locator('[role="checkbox"]').filter({ hasText: 'Apples' }).first();
+    await expect(item).toHaveAttribute('aria-checked', 'false');
+
+    // A tap fires touchend AND a synthesized click - the item must toggle once
+    await item.tap();
+    await page.waitForTimeout(500);
+
+    await expect(page.getByText(/Checked Items|פריטים שנלקחו/)).toBeVisible();
+    await expect(page.getByText(/1 items left|נותרו 1/)).toBeVisible();
+  });
+});
+
+test.describe('Importing a shared list', () => {
+  test('does not overwrite an existing list with the same name', async ({ page }) => {
+    await page.goto('/');
+    await clearAllData(page);
+    await createTestList(page, 'Shared Import List');
+    await addItemsViaInput(page, 'Milk');
+    await waitForAppReady(page);
+
+    // Read the share link out of the share modal
+    await page.locator('header button:has(svg.lucide-more-vertical)').click();
+    await page.waitForTimeout(300);
+    await page.locator('header button:has(svg.lucide-share-2)').click();
+    await page.waitForSelector('[role="dialog"]', { state: 'visible' });
+
+    const shareUrl = await page
+      .locator('[role="dialog"] div', { hasText: /\/share\?data=/ })
+      .last()
+      .innerText();
+    expect(shareUrl).toContain('/share?data=');
+
+    // Import it - this must create a second list, not replace the first one
+    await page.goto(shareUrl.trim());
+    await waitForAppReady(page);
+    await expect(page.getByText(/List imported|הרשימה יובאה/)).toBeVisible();
+
+    await page.goto('/');
+    await waitForAppReady(page);
+    await expect(page.getByText('Shared Import List', { exact: true })).toBeVisible();
+    await expect(page.getByText('Shared Import List (2)', { exact: true })).toBeVisible();
   });
 });
 

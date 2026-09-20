@@ -8,6 +8,7 @@ import { useTranslation } from '@/hooks/useTranslation';
 import { useFavorites } from '@/hooks/useFavorites';
 import { useCategories } from '@/hooks/useCategories';
 import { useGroceryLists } from '@/hooks/useGroceryList';
+import { addItemsToList } from '@/services/storage';
 import { BottomNav } from '@/components/BottomNav';
 import { Modal, ConfirmDialog } from '@/components/ui/Modal';
 import { Button, IconButton } from '@/components/ui/Button';
@@ -19,8 +20,8 @@ import type { FavoriteItem, UnitType } from '@/types/grocery';
 
 export default function FavoritesPage() {
   const router = useRouter();
-  const { t, language } = useTranslation();
-  const { favorites, removeFavorite, updateFavorite, toGroceryItems } = useFavorites();
+  const { t, language, interpolate } = useTranslation();
+  const { favorites, removeFavorite, updateFavorite } = useFavorites();
   const { categories } = useCategories();
   const { lists, createList } = useGroceryLists();
 
@@ -67,20 +68,23 @@ export default function FavoritesPage() {
   };
 
   const handleAddAllToList = () => {
+    const items = favorites.map((f) => ({
+      name: f.name,
+      categoryId: f.categoryId,
+      quantity: f.quantity,
+      unit: f.unit,
+    }));
+    
     if (selectedListId === 'new') {
       // Create new list with all favorites
-      const items = favorites.map((f) => ({
-        name: f.name,
-        categoryId: f.categoryId,
-        quantity: f.quantity,
-        unit: f.unit,
-      }));
-      const newList = createList('Favorites', items);
+      const newList = createList(t.favorites.title, items);
       router.push(`/list/${newList.id}`);
     } else if (selectedListId) {
-      // Add to existing list
-      router.push(`/list/${selectedListId}?addFavorites=all`);
+      // Append to the selected list, skipping items it already contains
+      addItemsToList(selectedListId, items);
+      router.push(`/list/${selectedListId}`);
     }
+    
     setShowAddToList(false);
     setSelectedListId('');
   };
@@ -97,6 +101,8 @@ export default function FavoritesPage() {
     <div className="min-h-screen bg-[var(--background)]">
       {/* Header */}
       <header className="sticky top-0 z-30 bg-[var(--background)]/80 backdrop-blur-lg border-b border-[var(--border)]">
+        {/* Safe area spacer for iPhone notch/dynamic island */}
+        <div className="h-[calc(env(safe-area-inset-top,0px)+12px)]" />
         <div className="flex items-center justify-between px-4 py-4">
           <h1 className="text-2xl font-bold text-[var(--foreground)]">
             {t.favorites.title}
@@ -165,16 +171,18 @@ export default function FavoritesPage() {
                           </div>
                         </div>
 
-                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div className="flex items-center gap-1">
                           <IconButton
                             onClick={() => handleEdit(item)}
                             className="text-[var(--muted-foreground)]"
+                            aria-label={t.common.edit}
                           >
                             <Edit3 size={18} />
                           </IconButton>
                           <IconButton
                             onClick={() => setItemToDelete(item.id)}
                             className="text-[var(--muted-foreground)] hover:text-red-500"
+                            aria-label={t.favorites.removeFromFavorites}
                           >
                             <Trash2 size={18} />
                           </IconButton>
@@ -253,7 +261,7 @@ export default function FavoritesPage() {
       >
         <div className="space-y-4">
           <p className="text-[var(--muted-foreground)]">
-            {favorites.length} {t.common.items}
+            {interpolate(t.favorites.favoritesCount, { count: favorites.length })}
           </p>
           
           <Select
