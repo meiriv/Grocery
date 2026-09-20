@@ -126,6 +126,12 @@ export function useCategories() {
     });
   }, [customCategories]);
 
+  // Commit a whole order at once (used by drag and drop)
+  const reorderCategories = useCallback((ids: string[]) => {
+    saveCategoryOrder(ids);
+    setCategoryOrder(ids);
+  }, []);
+
   // Back to the built-in order
   const resetCategoryOrder = useCallback(() => {
     clearCategoryOrder();
@@ -160,6 +166,7 @@ export function useCategories() {
     removeCategory,
     isCustomCategory,
     moveCategory,
+    reorderCategories,
     resetCategoryOrder,
     hasCustomOrder,
   };
