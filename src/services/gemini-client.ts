@@ -228,8 +228,7 @@ Remember to extract quantities from inputs like "item x5", "5 items", "2kg apple
     // Parse the JSON array response
     const jsonMatch = text.match(/\[[\s\S]*\]/);
     if (!jsonMatch) {
-      console.error('Invalid AI batch response format:', text);
-      return results;
+      throw new Error('The model replied in a format this app could not read');
     }
     
     const parsed = JSON.parse(jsonMatch[0]) as Array<{
@@ -259,8 +258,83 @@ Remember to extract quantities from inputs like "item x5", "5 items", "2kg apple
     
     return results;
   } catch (error) {
-    console.error('Error calling Gemini API for batch:', error);
-    return results;
+    // Let the caller decide what to tell the user - silently returning the
+    // keyword guesses made a broken key look like a working one
+    throw new Error(describeApiError(error));
+  }
+}
+
+// Turn an SDK error into one line worth showing someone
+export function describeApiError(error: unknown): string {
+  const message = error instanceof Error ? error.message : String(error);
+  
+  if (/API key not valid|API_KEY_INVALID|401|403/i.test(message)) {
+    return 'The API key was rejected';
+  }
+  if (/quota|RESOURCE_EXHAUSTED|429/i.test(message)) {
+    return 'The key is out of quota for now';
+  }
+  if (/not found|404/i.test(message)) {
+    return 'The selected model is not available to this key';
+  }
+  if (/fetch|network|Failed to fetch|ENOTFOUND/i.test(message)) {
+    return 'Could not reach the API - check your connection';
+  }
+  
+  // Keep it to one readable line
+  return message.split('\n')[0].slice(0, 160);
+}
+
+export interface AIConnectionTest {
+  ok: boolean;
+  model: string;
+  durationMs: number;
+  error?: string;
+}
+
+/**
+ * A real round-trip to the model in use: the only way to know the key still
+ * works, that the model is reachable and how slow it is. Deliberately does not
+ * check the aiEnabled toggle, so the connection can be tested before or after
+ * switching AI on.
+ */
+export async function testAIConnection(): Promise<AIConnectionTest> {
+  const modelName = getModelName();
+  const apiKey = await getApiKey();
+  
+  if (!apiKey) {
+    return { ok: false, model: modelName, durationMs: 0, error: 'No API key saved' };
+  }
+  
+  const started = Date.now();
+  
+  try {
+    const { GoogleGenerativeAI } = await import('@google/generative-ai');
+    const genAI = new GoogleGenerativeAI(apiKey);
+    const model = genAI.getGenerativeModel({ model: modelName });
+    
+    const result = await model.generateContent(
+      'Reply with one word: the category of "milk" in a grocery list.'
+    );
+    const text = result.response.text();
+    
+    if (!text || text.trim().length === 0) {
+      return {
+        ok: false,
+        model: modelName,
+        durationMs: Date.now() - started,
+        error: 'The model returned an empty answer',
+      };
+    }
+    
+    return { ok: true, model: modelName, durationMs: Date.now() - started };
+  } catch (error) {
+    return {
+      ok: false,
+      model: modelName,
+      durationMs: Date.now() - started,
+      error: describeApiError(error),
+    };
   }
 }
 

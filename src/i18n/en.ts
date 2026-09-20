@@ -67,6 +67,7 @@ export const en = {
     addToExisting: 'Add to existing item',
     quantityIncreased: 'Quantity updated',
     aiCategorizing: 'Improving categories with AI...',
+    aiFailed: 'AI categorization did not run - items were categorized by keyword',
     favoritesAdded: '{{count}} favorites added',
   },
   shopping: {
@@ -178,6 +179,11 @@ export const en = {
     noModels: 'This key has no usable models',
     recommended: 'Recommended',
     retry: 'Try again',
+    testAI: 'Test',
+    testing: 'Testing...',
+    testPassed: 'Working - answered in {{ms}} ms',
+    aiStatus: 'Connection',
+    aiStatusHint: 'Checks the key and the model with a real request',
   },
   units: {
     unit: 'Units',

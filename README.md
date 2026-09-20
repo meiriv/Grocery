@@ -147,6 +147,19 @@ To see or change the choice: **Settings → AI Categorization → Model → Chan
 The list comes from your own key, so it only ever shows models you can actually
 call.
 
+### Checking the connection
+
+**Settings → AI Categorization → Connection → Test** sends a real request to the
+model in use and reports either how long it took, or what went wrong ("The API
+key was rejected", "The key is out of quota for now", and so on).
+
+If a categorization fails while you are adding items, the list says so instead
+of quietly falling back - the items are still added, categorized by keyword.
+
+Note that not every item reaches the AI: anything the keyword matcher is
+confident about (milk, apples, tuna) is categorized locally, on purpose. Add
+something unusual to see the AI work.
+
 ## 🏗️ Project Structure
 
 ```

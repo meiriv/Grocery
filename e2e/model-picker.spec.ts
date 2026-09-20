@@ -41,11 +41,37 @@ const API_RESPONSE = {
 };
 
 async function stubModels(page: Page, body: unknown = API_RESPONSE, status = 200) {
-  await page.route(MODELS_URL, (route) =>
-    route.fulfill({
+  await page.route(MODELS_URL, (route) => {
+    // The generateContent endpoint lives under the same path - leave it to its
+    // own stub (or to fail, when a test did not set one)
+    if (route.request().url().includes(':generateContent')) {
+      return route.fallback();
+    }
+    
+    return route.fulfill({
       status,
       contentType: 'application/json',
       body: JSON.stringify(body),
+    });
+  });
+}
+
+// What the SDK expects back from generateContent
+function generateContentBody(text: string) {
+  return {
+    candidates: [{ content: { parts: [{ text }], role: 'model' }, finishReason: 'STOP' }],
+  };
+}
+
+async function stubGeneration(page: Page, text = 'dairy', status = 200) {
+  await page.route('**/v1beta/models/*:generateContent*', (route) =>
+    route.fulfill({
+      status,
+      contentType: 'application/json',
+      body:
+        status === 200
+          ? JSON.stringify(generateContentBody(text))
+          : JSON.stringify({ error: { message: 'API key not valid' } }),
     })
   );
 }
@@ -81,7 +107,7 @@ test.describe('Gemini model selection', () => {
     );
 
     // and it is shown in Settings
-    await expect(page.getByText('gemini-2.5-flash')).toBeVisible();
+    await expect(page.getByText('gemini-2.5-flash').first()).toBeVisible();
   });
 
   test('lets a different model be chosen, and keeps it', async ({ page }) => {
@@ -102,7 +128,7 @@ test.describe('Gemini model selection', () => {
 
     // A later key check must not overwrite a choice that is still available
     await page.reload();
-    await expect(page.getByText('gemini-2.5-pro')).toBeVisible();
+    await expect(page.getByText('gemini-2.5-pro').first()).toBeVisible();
   });
 
   test('reports a key the API rejects', async ({ page }) => {
@@ -119,5 +145,63 @@ test.describe('Gemini model selection', () => {
 
     await expect(page.getByText(/Connection failed/)).toBeVisible();
     expect(await page.evaluate(() => localStorage.getItem('gemini-model-name'))).toBeNull();
+  });
+});
+
+test.describe('Confirming the connection works', () => {
+  test('a passing test reports the model and how long it took', async ({ page }) => {
+    await stubModels(page);
+    await stubGeneration(page);
+    await saveApiKey(page);
+
+    await page.getByRole('button', { name: /^Test$/ }).click();
+
+    await expect(page.getByText(/Working - answered in \d+ ms/)).toBeVisible();
+    // Shown twice now: the model row, and the result of the test
+    await expect(page.getByText('gemini-2.5-flash').first()).toBeVisible();
+  });
+
+  test('a rejected key is reported in plain words', async ({ page }) => {
+    await stubModels(page);
+    await stubGeneration(page);
+    await saveApiKey(page);
+
+    // The key stops working after it was saved
+    await stubGeneration(page, '', 400);
+
+    await page.getByRole('button', { name: /^Test$/ }).click();
+
+    await expect(page.getByText('The API key was rejected')).toBeVisible();
+  });
+
+  test('a failure while adding items is shown, not swallowed', async ({ page }) => {
+    await stubModels(page);
+    await stubGeneration(page);
+    await saveApiKey(page);
+
+    // Make the categorization call fail
+    await stubGeneration(page, '', 400);
+
+    // A list with an item no keyword matches, so AI is actually called
+    await page.evaluate(() => {
+      const now = new Date().toISOString();
+      localStorage.setItem(
+        'grocery-lists',
+        JSON.stringify([
+          { id: 'ai-1', name: 'AI List', items: [], createdAt: now, updatedAt: now },
+        ])
+      );
+    });
+
+    await page.goto('/list/ai-1');
+    await page.locator('button.fixed, button[class*="fixed"]').first().click();
+    const field = page.locator('form textarea, form input[type="text"]').first();
+    await field.waitFor({ state: 'visible' });
+    await field.fill('zzqqx');
+    await page.locator('form button[type="submit"]').click();
+
+    // The item is still added, and the failure is visible
+    await expect(page.getByText('zzqqx')).toBeVisible();
+    await expect(page.getByText(/AI categorization did not run/)).toBeVisible();
   });
 });

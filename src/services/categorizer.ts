@@ -75,10 +75,16 @@ export function categorizeItemSync(itemName: string): ItemCategorizationResult {
   };
 }
 
+export interface BatchCategorizationResult {
+  results: Map<string, ItemCategorizationResult>;
+  /** Set when AI was asked but could not answer - the results are keyword-only */
+  aiError?: string;
+}
+
 // Batch categorization - more efficient for multiple items
 export async function categorizeMultipleItems(
   itemNames: string[]
-): Promise<Map<string, ItemCategorizationResult>> {
+): Promise<BatchCategorizationResult> {
   const results = new Map<string, ItemCategorizationResult>();
   const settings = getSettings();
   
@@ -122,12 +128,15 @@ export async function categorizeMultipleItems(
           });
         });
       } catch (error) {
+        // The keyword results still stand, but the caller should be able to
+        // tell the user that AI did not run
         console.error('AI batch categorization failed:', error);
+        return { results, aiError: error instanceof Error ? error.message : String(error) };
       }
     }
   }
   
-  return results;
+  return { results };
 }
 
 // Get categorization status
