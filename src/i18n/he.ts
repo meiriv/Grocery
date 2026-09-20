@@ -69,6 +69,7 @@ export const he: TranslationKeys = {
     addToExisting: 'הוסף לפריט הקיים',
     quantityIncreased: 'הכמות עודכנה',
     aiCategorizing: 'משפר קטגוריות עם AI...',
+    aiFailed: 'הקטגוריזציה החכמה לא רצה - הפריטים סווגו לפי מילות מפתח',
     favoritesAdded: '{{count}} מועדפים נוספו',
   },
   shopping: {
@@ -179,6 +180,11 @@ export const he: TranslationKeys = {
     noModels: 'אין מודלים זמינים עבור מפתח זה',
     recommended: 'מומלץ',
     retry: 'נסה שוב',
+    testAI: 'בדוק',
+    testing: 'בודק...',
+    testPassed: 'עובד - תשובה תוך {{ms}} מילישניות',
+    aiStatus: 'חיבור',
+    aiStatusHint: 'בודק את המפתח ואת המודל בבקשה אמיתית',
     installDescription: 'התקן אפליקציה זו במכשיר שלך לחוויה טובה יותר',
   },
   units: {

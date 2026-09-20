@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useCallback, useState, useEffect } from 'react';
-import { Globe, Moon, Sun, Monitor, Sparkles, Key, ExternalLink, Trash2, Check, AlertTriangle, Cpu } from 'lucide-react';
+import { Globe, Moon, Sun, Monitor, Sparkles, Key, ExternalLink, Trash2, Check, AlertTriangle, Cpu, Plug, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTranslation } from '@/hooks/useTranslation';
 import { useSettings, useTheme, useAISettings } from '@/hooks/useSettings';
@@ -15,6 +15,7 @@ import {
 } from '@/services/secure-storage';
 import { getPreferredModel, savePreferredModel } from '@/services/storage';
 import type { GeminiModel } from '@/services/gemini-models';
+import { testAIConnection, type AIConnectionTest } from '@/services/gemini-client';
 import { clearAllData } from '@/services/storage';
 import { BottomNav } from '@/components/BottomNav';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
@@ -25,7 +26,7 @@ import { Toggle } from '@/components/ui/Toggle';
 import { APP_VERSION } from '@/lib/version';
 
 export default function SettingsPage() {
-  const { t } = useTranslation();
+  const { t, interpolate } = useTranslation();
   const { theme, setTheme, isDark } = useTheme();
   const { aiEnabled, hasApiKey: hasKey, setAIEnabled } = useAISettings();
   const { settings, updateSettings } = useSettings();
@@ -41,6 +42,8 @@ export default function SettingsPage() {
   const [showModelModal, setShowModelModal] = useState(false);
   const [models, setModels] = useState<GeminiModel[]>([]);
   const [modelsState, setModelsState] = useState<'idle' | 'loading' | 'error'>('idle');
+  const [isTestingAI, setIsTestingAI] = useState(false);
+  const [aiTest, setAiTest] = useState<AIConnectionTest | null>(null);
 
   // Check if API key exists
   useEffect(() => {
@@ -71,6 +74,14 @@ export default function SettingsPage() {
     savePreferredModel(id);
     setModel(id);
     setShowModelModal(false);
+    setAiTest(null); // a different model has to prove itself again
+  };
+
+  const handleTestAI = async () => {
+    setIsTestingAI(true);
+    setAiTest(null);
+    setAiTest(await testAIConnection());
+    setIsTestingAI(false);
   };
 
   const handleSaveApiKey = async () => {
@@ -272,6 +283,55 @@ export default function SettingsPage() {
                   <Button variant="ghost" size="sm" onClick={handleOpenModelPicker}>
                     {t.settings.changeModel}
                   </Button>
+                </div>
+              )}
+
+              {hasStoredKey && (
+                <div className="px-3 py-2 bg-[var(--secondary)] rounded-lg space-y-2">
+                  <div className="flex items-center gap-2">
+                    <Plug size={16} className="text-[var(--muted-foreground)] flex-shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-[var(--foreground)]">
+                        {t.settings.aiStatus}
+                      </p>
+                      <p className="text-xs text-[var(--muted-foreground)]">
+                        {t.settings.aiStatusHint}
+                      </p>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => void handleTestAI()}
+                      isLoading={isTestingAI}
+                    >
+                      {isTestingAI ? t.settings.testing : t.settings.testAI}
+                    </Button>
+                  </div>
+
+                  {aiTest && (
+                    <div
+                      className={cn(
+                        'flex items-start gap-2 text-sm',
+                        aiTest.ok ? 'text-emerald-500' : 'text-red-500'
+                      )}
+                    >
+                      {aiTest.ok ? (
+                        <Check size={16} className="flex-shrink-0 mt-0.5" />
+                      ) : (
+                        <X size={16} className="flex-shrink-0 mt-0.5" />
+                      )}
+                      <div className="min-w-0">
+                        <p>
+                          {aiTest.ok
+                            ? interpolate(t.settings.testPassed, { ms: aiTest.durationMs })
+                            : aiTest.error}
+                        </p>
+                        <p className="text-xs text-[var(--muted-foreground)] break-all">
+                          {aiTest.model}
+                        </p>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
 

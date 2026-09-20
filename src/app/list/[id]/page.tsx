@@ -61,6 +61,7 @@ export default function ListPage() {
     { label: string; existingItemId?: string; quantity?: number } | null
   >(null);
   const [isCategorizingWithAI, setIsCategorizingWithAI] = useState(false);
+  const [aiError, setAiError] = useState<string | null>(null);
   const notificationTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Edit item form state
@@ -93,8 +94,11 @@ export default function ListPage() {
     if (!aiEnabled || !hasApiKey || added.length === 0) return;
     
     setIsCategorizingWithAI(true);
+    setAiError(null);
     try {
-      const results = await categorizeMultipleItems(added.map((item) => item.name));
+      const { results, aiError } = await categorizeMultipleItems(
+        added.map((item) => item.name)
+      );
       
       const updates = added
         .map((item) => {
@@ -106,8 +110,13 @@ export default function ListPage() {
         .filter((update): update is { id: string; changes: { categoryId: string } } => update !== null);
       
       updateItems(updates);
+      
+      // A failure leaves the keyword categories in place, which looks like
+      // success - say so instead of only logging it
+      if (aiError) setAiError(aiError);
     } catch (err) {
       console.error('AI categorization failed:', err);
+      setAiError(err instanceof Error ? err.message : String(err));
     } finally {
       setIsCategorizingWithAI(false);
     }
@@ -386,6 +395,26 @@ export default function ListPage() {
               aria-label={t.common.close}
             >
               <X size={18} />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* AI could not answer - the items are still there, categorized by keyword */}
+      {aiError && (
+        <div className="fixed bottom-24 left-4 right-4 z-40 flex justify-center">
+          <div className="flex items-start gap-2 max-w-md w-full px-3 py-2 rounded-xl bg-orange-500/15 border border-orange-500/40 text-sm">
+            <AlertCircle size={16} className="text-orange-500 flex-shrink-0 mt-0.5" />
+            <div className="flex-1 min-w-0">
+              <p className="text-[var(--foreground)]">{t.list.aiFailed}</p>
+              <p className="text-xs text-[var(--muted-foreground)] break-words">{aiError}</p>
+            </div>
+            <button
+              onClick={() => setAiError(null)}
+              className="p-1 text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
+              aria-label={t.common.close}
+            >
+              <X size={16} />
             </button>
           </div>
         </div>
