@@ -24,8 +24,10 @@ const STORAGE_KEYS = {
   FAVORITES: 'grocery-favorites',
   FREQUENT: 'grocery-frequent',
   CATEGORIES: 'grocery-categories',
+  CATEGORY_ORDER: 'grocery-category-order',
   SETTINGS: 'grocery-settings',
   API_KEY_ENCRYPTED: 'grocery-api-key-encrypted',
+  GEMINI_MODEL: 'gemini-model-name',
 } as const;
 
 // Default settings
@@ -215,19 +217,22 @@ export function trackItemUsage(
   unit: string
 ): void {
   const items = getFrequentItems();
-  const normalizedName = name.toLowerCase().trim();
+  const displayName = name.trim();
+  const normalizedName = displayName.toLowerCase();
   const index = items.findIndex(
     i => i.name.toLowerCase() === normalizedName
   );
   
   if (index >= 0) {
+    items[index].name = displayName;
+    items[index].categoryId = categoryId;
     items[index].useCount++;
     items[index].lastUsed = new Date();
     items[index].quantity = quantity;
     items[index].unit = unit as FrequentItem['unit'];
   } else {
     items.push({
-      name: normalizedName,
+      name: displayName,
       categoryId,
       quantity,
       unit: unit as FrequentItem['unit'],
@@ -246,7 +251,9 @@ export function trackItemUsage(
 export function getTopFrequentItems(limit: number = 10): FrequentItem[] {
   const items = getFrequentItems();
   return items
-    .sort((a, b) => b.useCount - a.useCount)
+    .sort(
+      (a, b) => b.useCount - a.useCount || b.lastUsed.getTime() - a.lastUsed.getTime()
+    )
     .slice(0, limit);
 }
 
@@ -281,6 +288,22 @@ export function deleteCustomCategory(id: string): void {
   saveCustomCategories(filtered);
 }
 
+// Shopping (aisle) order - the order categories appear in while shopping,
+// stored as a list of category ids. Categories missing from it keep their
+// natural position, so adding a category never breaks a saved order.
+export function getCategoryOrder(): string[] {
+  const order = getItem<string[]>(STORAGE_KEYS.CATEGORY_ORDER, []);
+  return Array.isArray(order) ? order.filter(id => typeof id === 'string') : [];
+}
+
+export function saveCategoryOrder(order: string[]): void {
+  setItem(STORAGE_KEYS.CATEGORY_ORDER, order);
+}
+
+export function clearCategoryOrder(): void {
+  removeItem(STORAGE_KEYS.CATEGORY_ORDER);
+}
+
 // Settings storage
 export function getSettings(): AppSettings {
   return getItem<AppSettings>(STORAGE_KEYS.SETTINGS, defaultSettings);
@@ -312,13 +335,31 @@ export function removeEncryptedApiKey(): void {
   updateSettings({ hasApiKey: false, aiEnabled: false });
 }
 
+// The Gemini model used for AI categorization
+export function getPreferredModel(): string | null {
+  if (!isBrowser()) return null;
+  try {
+    return localStorage.getItem(STORAGE_KEYS.GEMINI_MODEL);
+  } catch {
+    return null;
+  }
+}
+
+export function savePreferredModel(model: string): void {
+  if (!isBrowser()) return;
+  try {
+    // Stored raw, not JSON-encoded, so it reads back as a plain model id
+    localStorage.setItem(STORAGE_KEYS.GEMINI_MODEL, model);
+  } catch (error) {
+    console.error('Error saving the model name', error);
+  }
+}
+
 // Clear all data
 export function clearAllData(): void {
   Object.values(STORAGE_KEYS).forEach(key => {
     removeItem(key);
   });
-  // Non-namespaced leftovers
-  removeItem('gemini-model-name');
 }
 
 // Export data for backup. Dates are written in the same serialized shape that is
@@ -330,6 +371,7 @@ export function exportData(): string {
     favorites: getFavorites().map(serializeFav),
     frequent: getFrequentItems().map(serializeFreq),
     categories: getCustomCategories(),
+    categoryOrder: getCategoryOrder(),
     settings: getSettings(),
     exportedAt: new Date().toISOString(),
   };
@@ -352,6 +394,7 @@ export function importData(jsonString: string): boolean {
       saveFrequentItems((data.frequent as SerializedFrequentItem[]).map(deserializeFreq));
     }
     if (Array.isArray(data.categories)) saveCustomCategories(data.categories);
+    if (Array.isArray(data.categoryOrder)) saveCategoryOrder(data.categoryOrder);
     if (data.settings) saveSettings({ ...defaultSettings, ...data.settings });
     
     return true;

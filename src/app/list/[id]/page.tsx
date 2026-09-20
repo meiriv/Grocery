@@ -11,6 +11,7 @@ import { categorizeMultipleItems } from '@/services/categorizer';
 import { BottomNav } from '@/components/BottomNav';
 import { FloatingAddButton } from '@/components/FloatingAddButton';
 import { SmartInput } from '@/components/SmartInput';
+import { FrequentItems } from '@/components/FrequentItems';
 import { CategoryGroup } from '@/components/CategoryGroup';
 import { Modal, ConfirmDialog } from '@/components/ui/Modal';
 import { Button, IconButton } from '@/components/ui/Button';
@@ -156,6 +157,29 @@ export default function ListPage() {
     
     if (result.added.length > 0) {
       void refineCategoriesWithAI(result.added);
+    }
+  };
+
+  // Quick-add from the history chips. The category comes from what the item was
+  // filed under last time, so there is nothing for the AI to improve here.
+  const handleAddFrequent = (item: {
+    name: string;
+    categoryId: string;
+    quantity: number;
+    unit: UnitType;
+  }) => {
+    const result = addItem(item.name, {
+      categoryId: item.categoryId,
+      quantity: item.quantity,
+      unit: item.unit,
+    });
+    
+    if (result.isDuplicate && result.existingItem) {
+      showDuplicateAlert({
+        label: result.existingItem.name,
+        existingItemId: result.existingItem.id,
+        quantity: item.quantity,
+      });
     }
   };
 
@@ -388,13 +412,26 @@ export default function ListPage() {
               onClose={() => setShowAddInput(false)}
               autoFocus
             />
+            
+            <div className="mt-4">
+              <FrequentItems
+                existingNames={list.items.map((item) => item.name)}
+                onAdd={handleAddFrequent}
+              />
+            </div>
           </div>
         )}
 
         {/* Items */}
         {allItems.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20 text-center">
-            <p className="text-[var(--muted-foreground)]">{t.list.emptyState}</p>
+          <div className="py-10">
+            <p className="text-center text-[var(--muted-foreground)]">{t.list.emptyState}</p>
+            
+            {!showAddInput && (
+              <div className="mt-8">
+                <FrequentItems existingNames={[]} onAdd={handleAddFrequent} />
+              </div>
+            )}
           </div>
         ) : (
           <div className="py-4 space-y-6">

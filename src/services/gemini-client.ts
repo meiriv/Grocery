@@ -1,9 +1,10 @@
 import { getApiKey } from './secure-storage';
-import { getSettings } from './storage';
+import { getSettings, getPreferredModel } from './storage';
 import type { Category, UnitType } from '@/types/grocery';
 import { defaultCategories } from '@/lib/categories';
 import { getCustomCategories } from './storage';
 import { units } from '@/lib/units';
+import { FALLBACK_MODEL } from './gemini-models';
 
 export interface AICategorizationResult {
   categoryId: string;
@@ -13,13 +14,9 @@ export interface AICategorizationResult {
   parsedName: string; // The clean item name after extracting quantity
 }
 
-// Get the working model name from storage, or use default
+// The model the user picked in Settings, or a sensible default
 function getModelName(): string {
-  if (typeof window !== 'undefined') {
-    const storedModelName = localStorage.getItem('gemini-model-name');
-    if (storedModelName) return storedModelName;
-  }
-  return 'gemini-3-flash-preview';
+  return getPreferredModel() || FALLBACK_MODEL;
 }
 
 // Get all categories for the prompt

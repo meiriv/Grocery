@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Plus, Edit3, Trash2 } from 'lucide-react';
+import { Plus, Edit3, Trash2, ChevronUp, ChevronDown, RotateCcw } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTranslation } from '@/hooks/useTranslation';
 import { useCategories } from '@/hooks/useCategories';
@@ -20,11 +20,13 @@ export default function CategoriesPage() {
   const { t, language } = useTranslation();
   const {
     categories,
-    defaultCategories,
-    customCategories,
     addCategory,
     updateCategory,
     removeCategory,
+    isCustomCategory,
+    moveCategory,
+    resetCategoryOrder,
+    hasCustomOrder,
   } = useCategories();
 
   const [showAddModal, setShowAddModal] = useState(false);
@@ -122,54 +124,65 @@ export default function CategoriesPage() {
 
       {/* Content */}
       <main className="px-4 pb-safe">
-        <div className="py-4 space-y-6">
-          {/* Default categories */}
+        <div className="py-4 space-y-3">
           <div>
-            <h2 className="text-sm font-semibold text-[var(--muted-foreground)] uppercase tracking-wider mb-3">
-              {t.categories.defaultSection}
+            <h2 className="text-sm font-semibold text-[var(--muted-foreground)] uppercase tracking-wider">
+              {t.categories.shoppingOrder}
             </h2>
-            <div className="space-y-2">
-              {defaultCategories.map((category) => (
+            <p className="mt-1 text-xs text-[var(--muted-foreground)]">
+              {t.categories.shoppingOrderHint}
+            </p>
+          </div>
+
+          <div className="space-y-2">
+            {categories.map((category, index) => {
+              const isCustom = isCustomCategory(category.id);
+
+              return (
                 <div
                   key={category.id}
-                  className="flex items-center gap-3 p-3 bg-[var(--card)] rounded-xl border border-[var(--border)]"
+                  className="flex items-center gap-2 p-3 bg-[var(--card)] rounded-xl border border-[var(--border)]"
                 >
+                  {/* Reorder controls */}
+                  <div className="flex flex-col flex-shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => moveCategory(category.id, 'up')}
+                      disabled={index === 0}
+                      className="p-1 text-[var(--muted-foreground)] hover:text-[var(--foreground)] disabled:opacity-25 transition-colors"
+                      aria-label={`${t.categories.moveUp}: ${category.name[language]}`}
+                    >
+                      <ChevronUp size={18} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => moveCategory(category.id, 'down')}
+                      disabled={index === categories.length - 1}
+                      className="p-1 text-[var(--muted-foreground)] hover:text-[var(--foreground)] disabled:opacity-25 transition-colors"
+                      aria-label={`${t.categories.moveDown}: ${category.name[language]}`}
+                    >
+                      <ChevronDown size={18} />
+                    </button>
+                  </div>
+
                   <span
                     className={cn('w-4 h-4 rounded-full flex-shrink-0', category.color)}
                   />
-                  <span className="flex-1 font-medium text-[var(--foreground)]">
+                  <span className="flex-1 min-w-0 font-medium text-[var(--foreground)] truncate">
                     {category.name[language]}
                   </span>
+
+                  {isCustom && (
+                    <span className="text-[10px] uppercase tracking-wide px-2 py-0.5 rounded-full bg-[var(--secondary)] text-[var(--muted-foreground)]">
+                      {t.categories.customSection}
+                    </span>
+                  )}
+
                   <span className="text-sm text-[var(--muted-foreground)]">
                     {getUnit(category.defaultUnit).shortName[language]}
                   </span>
-                </div>
-              ))}
-            </div>
-          </div>
 
-          {/* Custom categories */}
-          {customCategories.length > 0 && (
-            <div>
-              <h2 className="text-sm font-semibold text-[var(--muted-foreground)] uppercase tracking-wider mb-3">
-                {t.categories.customSection}
-              </h2>
-              <div className="space-y-2">
-                {customCategories.map((category) => (
-                  <div
-                    key={category.id}
-                    className="group flex items-center gap-3 p-3 bg-[var(--card)] rounded-xl border border-[var(--border)]"
-                  >
-                    <span
-                      className={cn('w-4 h-4 rounded-full flex-shrink-0', category.color)}
-                    />
-                    <span className="flex-1 font-medium text-[var(--foreground)]">
-                      {category.name[language]}
-                    </span>
-                    <span className="text-sm text-[var(--muted-foreground)]">
-                      {getUnit(category.defaultUnit).shortName[language]}
-                    </span>
-
+                  {isCustom && (
                     <div className="flex items-center gap-1">
                       <IconButton
                         onClick={() => handleEdit(category)}
@@ -186,10 +199,22 @@ export default function CategoriesPage() {
                         <Trash2 size={18} />
                       </IconButton>
                     </div>
-                  </div>
-                ))}
-              </div>
-            </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
+          {hasCustomOrder && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="w-full text-[var(--muted-foreground)]"
+              leftIcon={<RotateCcw size={16} />}
+              onClick={resetCategoryOrder}
+            >
+              {t.categories.resetOrder}
+            </Button>
           )}
         </div>
       </main>

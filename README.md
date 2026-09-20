@@ -16,6 +16,7 @@ A modern, mobile-first Progressive Web App (PWA) for managing grocery lists with
 - **Quantity detection** - Recognizes patterns like "milk x3", "2kg apples", "טונה x8"
 
 ### 🛍️ Shopping Mode
+- **Aisle order** - Arrange the categories on the Categories screen to match your route through the store; shopping mode (and the list) follow that order
 - **One-handed operation** - Large touch targets optimized for in-store use
 - **Tap to check off** - Quick item completion
 - **Swipe gestures** - Swipe left to mark as "Out of Stock" (in the list view, swipe left deletes an item)
@@ -41,6 +42,9 @@ Pre-configured categories with smart defaults:
 - 💄 Personal Care
 - 🥫 Canned
 - 📦 Other
+
+### ⚡ Quick Add
+- **Frequently bought** - The items you add most often appear as one-tap chips on an empty list and under the add field, with the quantity and category you used last time
 
 ### 🗂️ List Management
 - **Swipe to delete** - Swipe a list left on the home screen to remove it, with an undo toast if it was a mistake (the ⋮ menu still offers a confirmed delete)
@@ -130,6 +134,18 @@ To enable AI-powered categorization with Google Gemini:
 5. Click **Test Connection** to verify
 
 The app works perfectly without AI - it uses intelligent keyword matching as a fallback. With AI enabled, items are still added instantly using keyword matching and are re-categorized in the background once Gemini answers.
+
+### Choosing a model
+
+Saving a key asks Google which models that key may use, and selects the best fit
+automatically: the newest *stable* generation, preferring a fast `flash` model,
+since categorizing a few words needs speed rather than reasoning power. No model
+names are hardcoded, so a model released after this app was written is picked up
+on its own.
+
+To see or change the choice: **Settings → AI Categorization → Model → Change**.
+The list comes from your own key, so it only ever shows models you can actually
+call.
 
 ## 🏗️ Project Structure
 

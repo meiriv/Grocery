@@ -177,8 +177,14 @@ test.describe('List Page - Item Management', () => {
     await page.waitForSelector('[role="dialog"]', { state: 'visible' });
     await page.locator('[role="dialog"] button:has(svg.lucide-trash-2)').click();
     
-    // Item should be removed
-    await expect(page.getByText('Item To Delete')).not.toBeVisible({ timeout: 5000 });
+    // The row is gone - the name may still show as a quick-add suggestion,
+    // since deleting an item does not erase it from your history
+    await expect(page.getByRole('checkbox')).toHaveCount(0);
+    expect(
+      await page.evaluate(
+        () => JSON.parse(localStorage.getItem('grocery-lists') || '[]').at(-1).items.length
+      )
+    ).toBe(0);
   });
 
   test('should add item to favorites', async ({ page }) => {
@@ -322,8 +328,9 @@ test.describe('Categories Page', () => {
   test('should display categories page with default categories', async ({ page }) => {
     await expect(page.locator('h1')).toContainText(/Categories|קטגוריות/);
     
-    // Should show default section
-    await expect(page.getByText('Default')).toBeVisible();
+    // The categories are listed in shopping order
+    await expect(page.getByText(/Shopping order|סדר הקנייה/)).toBeVisible();
+    await expect(page.getByText('Fruits')).toBeVisible();
   });
 
   test('should display default category list', async ({ page }) => {
