@@ -111,6 +111,11 @@ export const he: TranslationKeys = {
     other: 'אחר',
     defaultSection: 'ברירת מחדל',
     customSection: 'מותאם אישית',
+    shoppingOrder: 'סדר הקנייה',
+    shoppingOrderHint: 'סדר את הקטגוריות לפי המסלול שלך בחנות - מצב הקניות יעקוב אחריו',
+    moveUp: 'העבר למעלה',
+    moveDown: 'העבר למטה',
+    resetOrder: 'אפס סדר',
   },
   favorites: {
     title: 'מועדפים',

@@ -109,6 +109,11 @@ export const en = {
     other: 'Other',
     defaultSection: 'Default',
     customSection: 'Custom',
+    shoppingOrder: 'Shopping order',
+    shoppingOrderHint: 'Put the categories in the order you walk the store - shopping mode follows it',
+    moveUp: 'Move up',
+    moveDown: 'Move down',
+    resetOrder: 'Reset order',
   },
   favorites: {
     title: 'Favorites',
