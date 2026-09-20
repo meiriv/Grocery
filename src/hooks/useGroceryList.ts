@@ -391,6 +391,12 @@ export function useGroceryLists() {
     return duplicate;
   }, [lists]);
 
+  // Put a deleted list back (used by the undo action after a swipe-to-delete)
+  const restoreList = useCallback((list: GroceryList) => {
+    saveList(list);
+    setLists(prev => (prev.some(l => l.id === list.id) ? prev : [...prev, list]));
+  }, []);
+
   // Refresh lists from storage
   const refreshLists = useCallback(() => {
     const loaded = getLists();
@@ -403,6 +409,7 @@ export function useGroceryLists() {
     createList,
     deleteList,
     duplicateList,
+    restoreList,
     refreshLists,
   };
 }

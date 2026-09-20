@@ -26,6 +26,13 @@ interface SwipeState {
 // by then may be over a *different* item, because checking one off re-flows the
 // list. Tracking this globally makes sure that click is ignored everywhere.
 let lastTouchEndTimestamp = 0;
+// Timestamp of the most recent completed swipe, so that other handlers (for
+// example a card that opens on click) can ignore the click that follows it.
+let lastSwipeTimestamp = 0;
+
+export function didRecentSwipe(withinMs: number = 700): boolean {
+  return Date.now() - lastSwipeTimestamp < withinMs;
+}
 
 export function useSwipeGesture(config: SwipeConfig) {
   const {
@@ -122,6 +129,7 @@ export function useSwipeGesture(config: SwipeConfig) {
       onTap?.();
     } else {
       swipedRef.current = true;
+      lastSwipeTimestamp = Date.now();
       // Check for swipe (accounting for RTL unless ignoreRTL is true)
       const effectiveDelta = shouldFlip ? -deltaX : deltaX;
       

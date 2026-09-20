@@ -42,6 +42,10 @@ Pre-configured categories with smart defaults:
 - 🥫 Canned
 - 📦 Other
 
+### 🗂️ List Management
+- **Swipe to delete** - Swipe a list left on the home screen to remove it, with an undo toast if it was a mistake (the ⋮ menu still offers a confirmed delete)
+- **Start from favorites or a copy** - New lists can begin empty, from selected favorites, or as a copy of an existing list
+
 ### 💾 Data & Sharing
 - **Local storage** - All data stored locally on your device; nothing is uploaded to a server
 - **Share lists** - Copy a link (or use the native share sheet) that recreates the list on someone else's device. The list is encoded in the link itself, so shared lists are snapshots, not live-synced copies
@@ -162,6 +166,17 @@ src/
 │   ├── en.ts             # English
 │   └── he.ts             # Hebrew
 └── types/                 # TypeScript types
+```
+
+## 🔢 Versioning
+
+The app version lives in `package.json` only - `src/lib/version.ts` reads it at
+build time, so Settings always shows the real version.
+
+```bash
+npm run version:patch   # bug fixes only
+npm run version:minor   # new features or behaviour changes
+npm run version:major   # breaking changes to stored data or the app's contract
 ```
 
 ## 🧪 Tests

@@ -1,6 +1,12 @@
+const pkg = require('./package.json');
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  // Single source of truth for the version shown in Settings
+  env: {
+    NEXT_PUBLIC_APP_VERSION: pkg.version,
+  },
   // PWA headers for service worker
   async headers() {
     return [

@@ -31,6 +31,9 @@ export const en = {
     deleteListConfirm: 'Are you sure you want to delete this list?',
     listItems: '{{count}} items',
     lastUpdated: 'Updated {{time}}',
+    listOptions: 'List options',
+    listDeleted: '"{{name}}" deleted',
+    swipeToDeleteHint: 'Swipe a list left to delete it',
   },
   list: {
     addItem: 'Add item...',

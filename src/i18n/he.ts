@@ -33,6 +33,9 @@ export const he: TranslationKeys = {
     deleteListConfirm: 'האם אתה בטוח שברצונך למחוק רשימה זו?',
     listItems: '{{count}} פריטים',
     lastUpdated: 'עודכן {{time}}',
+    listOptions: 'אפשרויות רשימה',
+    listDeleted: '"{{name}}" נמחקה',
+    swipeToDeleteHint: 'החלק רשימה שמאלה כדי למחוק אותה',
   },
   list: {
     addItem: 'הוסף פריט...',
