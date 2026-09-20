@@ -1,5 +1,13 @@
 import { encryptData, decryptData, isEncryptionSupported, clearEncryptionKeys } from '@/lib/encryption';
-import { getEncryptedApiKey, saveEncryptedApiKey, removeEncryptedApiKey, updateSettings } from './storage';
+import {
+  getEncryptedApiKey,
+  saveEncryptedApiKey,
+  removeEncryptedApiKey,
+  updateSettings,
+  getPreferredModel,
+  savePreferredModel,
+} from './storage';
+import { listGenerativeModels, chooseDefaultModel, type GeminiModel } from './gemini-models';
 
 export interface SecureStorageService {
   storeApiKey(key: string): Promise<void>;
@@ -62,48 +70,37 @@ export async function clearAllSecureStorage(): Promise<void> {
   await clearEncryptionKeys();
 }
 
-// Validate API key with Gemini API
+// Validate an API key by asking which models it may use. That is a single
+// cheap request, it proves the key works, and it tells us what to run - the
+// old version guessed from a hardcoded list of model names and kept whichever
+// answered first, which silently pinned users to ageing models.
 export async function validateApiKey(apiKey: string): Promise<boolean> {
   try {
-    const { GoogleGenerativeAI } = await import('@google/generative-ai');
-    const genAI = new GoogleGenerativeAI(apiKey);
+    const models = await listGenerativeModels(apiKey);
     
-    // Try multiple model names in order of preference
-    const modelNames = [
-      'gemini-3-flash-preview',
-      'gemini-2.0-flash',
-      'gemini-1.5-flash-latest',
-      'gemini-1.5-flash-001',
-      'gemini-pro',
-    ];
-    
-    for (const modelName of modelNames) {
-      try {
-        const model = genAI.getGenerativeModel({ model: modelName });
-        
-        // Make a simple request to validate the key
-        const result = await model.generateContent('Say "ok" if you can read this.');
-        const response = result.response;
-        const text = response.text();
-        
-        if (text.length > 0) {
-          // Store the working model name for future use
-          if (typeof window !== 'undefined') {
-            localStorage.setItem('gemini-model-name', modelName);
-          }
-          return true;
-        }
-      } catch (modelError) {
-        // Try next model
-        console.log(`Model ${modelName} not available, trying next...`);
-        continue;
-      }
+    if (models.length === 0) {
+      console.error('API key is valid but exposes no usable models');
+      return false;
     }
     
-    return false;
+    // Keep the user's choice if it still exists, otherwise pick the best one
+    const current = getPreferredModel();
+    if (!current || !models.some(model => model.id === current)) {
+      const best = chooseDefaultModel(models);
+      if (best) savePreferredModel(best);
+    }
+    
+    return true;
   } catch (error) {
     console.error('API key validation failed:', error);
     return false;
   }
 }
 
+// The models this key can use, best suited first
+export async function getAvailableModels(): Promise<GeminiModel[]> {
+  const apiKey = await getApiKey();
+  if (!apiKey) return [];
+  
+  return listGenerativeModels(apiKey);
+}

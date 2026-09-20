@@ -1,11 +1,20 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { Globe, Moon, Sun, Monitor, Sparkles, Key, ExternalLink, Trash2, Check, X, AlertTriangle } from 'lucide-react';
+import React, { useCallback, useState, useEffect } from 'react';
+import { Globe, Moon, Sun, Monitor, Sparkles, Key, ExternalLink, Trash2, Check, AlertTriangle, Cpu } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTranslation } from '@/hooks/useTranslation';
 import { useSettings, useTheme, useAISettings } from '@/hooks/useSettings';
-import { storeApiKey, clearApiKey, validateApiKey, hasApiKey, clearAllSecureStorage } from '@/services/secure-storage';
+import {
+  storeApiKey,
+  clearApiKey,
+  validateApiKey,
+  hasApiKey,
+  clearAllSecureStorage,
+  getAvailableModels,
+} from '@/services/secure-storage';
+import { getPreferredModel, savePreferredModel } from '@/services/storage';
+import type { GeminiModel } from '@/services/gemini-models';
 import { clearAllData } from '@/services/storage';
 import { BottomNav } from '@/components/BottomNav';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
@@ -28,11 +37,41 @@ export default function SettingsPage() {
   const [showClearDataConfirm, setShowClearDataConfirm] = useState(false);
   const [showRemoveKeyConfirm, setShowRemoveKeyConfirm] = useState(false);
   const [hasStoredKey, setHasStoredKey] = useState(false);
+  const [model, setModel] = useState<string | null>(null);
+  const [showModelModal, setShowModelModal] = useState(false);
+  const [models, setModels] = useState<GeminiModel[]>([]);
+  const [modelsState, setModelsState] = useState<'idle' | 'loading' | 'error'>('idle');
 
   // Check if API key exists
   useEffect(() => {
     hasApiKey().then(setHasStoredKey);
+    setModel(getPreferredModel());
   }, []);
+
+  // Ask the key which models it can use. Kept out of the initial page load -
+  // it only runs when the picker is opened.
+  const loadModels = useCallback(async () => {
+    setModelsState('loading');
+    try {
+      const available = await getAvailableModels();
+      setModels(available);
+      setModelsState('idle');
+    } catch (error) {
+      console.error('Could not list models:', error);
+      setModelsState('error');
+    }
+  }, []);
+
+  const handleOpenModelPicker = () => {
+    setShowModelModal(true);
+    void loadModels();
+  };
+
+  const handleSelectModel = (id: string) => {
+    savePreferredModel(id);
+    setModel(id);
+    setShowModelModal(false);
+  };
 
   const handleSaveApiKey = async () => {
     if (!apiKeyInput.trim()) return;
@@ -47,6 +86,7 @@ export default function SettingsPage() {
         await storeApiKey(apiKeyInput.trim());
         setKeyTestResult('success');
         setHasStoredKey(true);
+        setModel(getPreferredModel());
         // A verified key means the user wants AI categorization - switch it on
         // instead of leaving them with a stored key that does nothing.
         updateSettings({ hasApiKey: true, aiEnabled: true });
@@ -218,6 +258,23 @@ export default function SettingsPage() {
                 </Button>
               )}
               
+              {hasStoredKey && (
+                <div className="flex items-center gap-2 px-3 py-2 bg-[var(--secondary)] rounded-lg">
+                  <Cpu size={16} className="text-[var(--muted-foreground)] flex-shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-[var(--foreground)] truncate">
+                      {model || t.settings.model}
+                    </p>
+                    <p className="text-xs text-[var(--muted-foreground)]">
+                      {t.settings.modelHint}
+                    </p>
+                  </div>
+                  <Button variant="ghost" size="sm" onClick={handleOpenModelPicker}>
+                    {t.settings.changeModel}
+                  </Button>
+                </div>
+              )}
+
               <a
                 href="https://aistudio.google.com/app/apikey"
                 target="_blank"
@@ -326,6 +383,81 @@ export default function SettingsPage() {
               {t.settings.testConnection}
             </Button>
           </div>
+        </div>
+      </Modal>
+
+      {/* Model Picker */}
+      <Modal
+        isOpen={showModelModal}
+        onClose={() => setShowModelModal(false)}
+        title={t.settings.chooseModel}
+      >
+        <div className="space-y-3">
+          {modelsState === 'loading' && (
+            <div className="flex items-center gap-3 py-6 text-[var(--muted-foreground)]">
+              <div className="w-5 h-5 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+              <span className="text-sm">{t.settings.loadingModels}</span>
+            </div>
+          )}
+
+          {modelsState === 'error' && (
+            <div className="space-y-3 py-4">
+              <p className="text-sm text-red-500">{t.settings.modelsFailed}</p>
+              <Button variant="secondary" className="w-full" onClick={() => void loadModels()}>
+                {t.settings.retry}
+              </Button>
+            </div>
+          )}
+
+          {modelsState === 'idle' && models.length === 0 && (
+            <p className="py-6 text-sm text-[var(--muted-foreground)]">
+              {t.settings.noModels}
+            </p>
+          )}
+
+          {modelsState === 'idle' && models.length > 0 && (
+            <div className="space-y-2 max-h-[50vh] overflow-y-auto">
+              {models.map((option, index) => {
+                const isSelected = option.id === model;
+
+                return (
+                  <button
+                    key={option.id}
+                    type="button"
+                    onClick={() => handleSelectModel(option.id)}
+                    className={cn(
+                      'w-full flex items-start gap-3 p-3 rounded-xl text-start',
+                      'border transition-colors',
+                      isSelected
+                        ? 'border-emerald-500 bg-emerald-500/10'
+                        : 'border-[var(--border)] hover:bg-[var(--accent)]'
+                    )}
+                  >
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-medium text-[var(--foreground)] break-all">
+                          {option.id}
+                        </span>
+                        {index === 0 && (
+                          <span className="text-[10px] uppercase tracking-wide px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-500">
+                            {t.settings.recommended}
+                          </span>
+                        )}
+                      </div>
+                      {option.displayName !== option.id && (
+                        <p className="text-xs text-[var(--muted-foreground)] mt-0.5 truncate">
+                          {option.displayName}
+                        </p>
+                      )}
+                    </div>
+                    {isSelected && (
+                      <Check size={18} className="text-emerald-500 flex-shrink-0 mt-0.5" />
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          )}
         </div>
       </Modal>
 

@@ -135,6 +135,18 @@ To enable AI-powered categorization with Google Gemini:
 
 The app works perfectly without AI - it uses intelligent keyword matching as a fallback. With AI enabled, items are still added instantly using keyword matching and are re-categorized in the background once Gemini answers.
 
+### Choosing a model
+
+Saving a key asks Google which models that key may use, and selects the best fit
+automatically: the newest *stable* generation, preferring a fast `flash` model,
+since categorizing a few words needs speed rather than reasoning power. No model
+names are hardcoded, so a model released after this app was written is picked up
+on its own.
+
+To see or change the choice: **Settings → AI Categorization → Model → Change**.
+The list comes from your own key, so it only ever shows models you can actually
+call.
+
 ## 🏗️ Project Structure
 
 ```

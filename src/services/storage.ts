@@ -27,6 +27,7 @@ const STORAGE_KEYS = {
   CATEGORY_ORDER: 'grocery-category-order',
   SETTINGS: 'grocery-settings',
   API_KEY_ENCRYPTED: 'grocery-api-key-encrypted',
+  GEMINI_MODEL: 'gemini-model-name',
 } as const;
 
 // Default settings
@@ -334,13 +335,31 @@ export function removeEncryptedApiKey(): void {
   updateSettings({ hasApiKey: false, aiEnabled: false });
 }
 
+// The Gemini model used for AI categorization
+export function getPreferredModel(): string | null {
+  if (!isBrowser()) return null;
+  try {
+    return localStorage.getItem(STORAGE_KEYS.GEMINI_MODEL);
+  } catch {
+    return null;
+  }
+}
+
+export function savePreferredModel(model: string): void {
+  if (!isBrowser()) return;
+  try {
+    // Stored raw, not JSON-encoded, so it reads back as a plain model id
+    localStorage.setItem(STORAGE_KEYS.GEMINI_MODEL, model);
+  } catch (error) {
+    console.error('Error saving the model name', error);
+  }
+}
+
 // Clear all data
 export function clearAllData(): void {
   Object.values(STORAGE_KEYS).forEach(key => {
     removeItem(key);
   });
-  // Non-namespaced leftovers
-  removeItem('gemini-model-name');
 }
 
 // Export data for backup. Dates are written in the same serialized shape that is
