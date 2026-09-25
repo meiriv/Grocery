@@ -65,7 +65,8 @@ export function ListCard({
           'hover:border-[var(--muted-foreground)]'
         )}
       >
-        <button onClick={handleOpen} className="w-full p-4 text-start">
+        {/* pe-14 keeps the progress ring clear of the menu button on top of it */}
+        <button onClick={handleOpen} className="w-full p-4 pe-14 text-start">
           <div className="flex items-start justify-between gap-3">
             <div className="flex-1 min-w-0">
               <h3 className="font-semibold text-lg text-[var(--foreground)] truncate">

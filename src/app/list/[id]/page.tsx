@@ -80,6 +80,15 @@ export default function ListPage() {
     notificationTimer.current = setTimeout(() => setDuplicateNotification(null), 6000);
   }, []);
 
+  // Arriving from "create list" (?add=1): open the add field straight away
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('add') === '1') {
+      setShowAddInput(true);
+      window.history.replaceState(null, '', window.location.pathname);
+    }
+  }, []);
+
   // Clear the pending timer when leaving the page
   useEffect(() => {
     return () => {
@@ -257,29 +266,16 @@ export default function ListPage() {
       <header className="sticky top-0 z-30 bg-[var(--background)]/80 backdrop-blur-lg border-b border-[var(--border)]">
         {/* Safe area spacer for iPhone notch/dynamic island */}
         <div className="h-[calc(env(safe-area-inset-top,0px)+12px)]" />
-        <div className="flex items-center gap-3 px-4 py-3">
+        {/* Row 1: the name gets the full width - sharing it with the shopping
+            button cut it down to a few letters on a phone */}
+        <div className="flex items-center gap-3 px-4 pt-3">
           <IconButton onClick={() => router.push('/')}>
             <ArrowLeft size={24} className={cn('lucide-arrow-left', isRTL && 'rotate-180')} />
           </IconButton>
           
-          <div className="flex-1 min-w-0">
-            <h1 className="text-xl font-bold text-[var(--foreground)] truncate">
-              {list.name}
-            </h1>
-            <p className="text-sm text-[var(--muted-foreground)]">
-              {interpolate(t.home.listItems, { count: list.items.length })}
-            </p>
-          </div>
-
-          <Button
-            onClick={() => router.push(`/list/${id}/shopping`)}
-            variant="primary"
-            size="sm"
-            leftIcon={<ShoppingBag size={18} className="lucide-shopping-bag" />}
-            className="whitespace-nowrap"
-          >
-            {t.list.startShopping}
-          </Button>
+          <h1 className="flex-1 min-w-0 text-xl font-bold text-[var(--foreground)] truncate">
+            {list.name}
+          </h1>
 
           <div className="relative">
             <IconButton onClick={() => setShowMenu(!showMenu)}>
@@ -363,6 +359,23 @@ export default function ListPage() {
             )}
           </div>
         </div>
+
+        {/* Row 2: item count, and the main action within thumb reach */}
+        <div className="flex items-center justify-between gap-3 px-4 pb-3 pt-1">
+          <p className="ps-14 text-sm text-[var(--muted-foreground)]">
+            {interpolate(t.home.listItems, { count: list.items.length })}
+          </p>
+
+          <Button
+            onClick={() => router.push(`/list/${id}/shopping`)}
+            variant="primary"
+            size="sm"
+            leftIcon={<ShoppingBag size={18} className="lucide-shopping-bag" />}
+            className="whitespace-nowrap"
+          >
+            {t.list.startShopping}
+          </Button>
+        </div>
       </header>
 
       {/* Duplicate Item Notification */}
@@ -431,7 +444,7 @@ export default function ListPage() {
       )}
 
       {/* Content */}
-      <main className="px-4 pb-safe">
+      <main className="px-4 pb-fab">
         {/* Add input */}
         {showAddInput && (
           <div className="py-4 animate-fade-in">

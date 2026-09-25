@@ -4,6 +4,9 @@ module.exports = {
     './src/pages/**/*.{js,ts,jsx,tsx,mdx}',
     './src/components/**/*.{js,ts,jsx,tsx,mdx}',
     './src/app/**/*.{js,ts,jsx,tsx,mdx}',
+    // Category colours are class names stored as data in lib/categories.ts -
+    // without this, Tailwind strips most of them from the production CSS
+    './src/lib/**/*.{js,ts,jsx,tsx}',
   ],
   darkMode: 'class',
   theme: {
