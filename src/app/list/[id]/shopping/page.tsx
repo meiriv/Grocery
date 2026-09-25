@@ -2,14 +2,18 @@
 
 import React, { useMemo, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import { X, Check, AlertTriangle, ShoppingBag, ChevronDown, RotateCcw } from 'lucide-react';
+import { X, Check, AlertTriangle, ShoppingBag, ChevronDown, RotateCcw, Plus, Trash2 } from 'lucide-react';
 import { cn, groupBy, vibrate } from '@/lib/utils';
 import { useTranslation } from '@/hooks/useTranslation';
 import { useGroceryList } from '@/hooks/useGroceryList';
 import { useCategories } from '@/hooks/useCategories';
 import { ShoppingItem } from '@/components/GroceryItem';
 import { Button, IconButton } from '@/components/ui/Button';
-import { QuantityDisplay } from '@/components/QuantityEditor';
+import { QuantityDisplay, QuantityEditor } from '@/components/QuantityEditor';
+import { Modal } from '@/components/ui/Modal';
+import { SmartInput } from '@/components/SmartInput';
+import { FrequentItems } from '@/components/FrequentItems';
+import type { UnitType } from '@/types/grocery';
 
 export default function ShoppingModePage() {
   const params = useParams();
@@ -26,9 +30,68 @@ export default function ShoppingModePage() {
     outOfStockItems,
     toggleItemChecked,
     markOutOfStock,
+    addItem,
+    addItems,
+    updateItem,
+    removeItem,
   } = useGroceryList(id);
 
   const [showPickedItems, setShowPickedItems] = useState(true);
+  const [showAddSheet, setShowAddSheet] = useState(false);
+  const [actionItemId, setActionItemId] = useState<string | null>(null);
+
+  // Read from the list on every render so the sheet shows live quantities
+  const actionItem = list?.items.find((item) => item.id === actionItemId) || null;
+
+  // Something added mid-shop that is already on the list is still needed -
+  // if it was ticked off or marked out of stock, put it back
+  const bringBack = (name: string) => {
+    const existing = list?.items.find(
+      (item) => item.name.trim().toLowerCase() === name.trim().toLowerCase()
+    );
+    if (existing && existing.status !== 'pending') {
+      updateItem(existing.id, { status: 'pending', checkedAt: undefined });
+    }
+  };
+
+  const handleAddWhileShopping = (item: {
+    name: string;
+    categoryId?: string;
+    quantity?: number;
+    unit?: UnitType;
+  }) => {
+    const result = addItem(item.name, {
+      categoryId: item.categoryId,
+      quantity: item.quantity,
+      unit: item.unit,
+    });
+    if (result.isDuplicate) bringBack(item.name);
+    setShowAddSheet(false);
+  };
+
+  const handleAddManyWhileShopping = (
+    items: Array<{ name: string; categoryId: string; quantity: number; unit: UnitType }>
+  ) => {
+    const result = addItems(items);
+    result.duplicates.forEach(bringBack);
+    setShowAddSheet(false);
+  };
+
+  // History chips keep the sheet open, so several staples go in a row
+  const handleAddFrequentWhileShopping = (item: {
+    name: string;
+    categoryId: string;
+    quantity: number;
+    unit: UnitType;
+  }) => {
+    vibrate(10);
+    const result = addItem(item.name, {
+      categoryId: item.categoryId,
+      quantity: item.quantity,
+      unit: item.unit,
+    });
+    if (result.isDuplicate) bringBack(item.name);
+  };
 
   // Group pending items by category
   const groupedItems = useMemo(() => {
@@ -109,7 +172,14 @@ export default function ShoppingModePage() {
             </p>
           </div>
 
-          <div className="w-10" /> {/* Spacer for centering */}
+          {/* Add without leaving shopping mode */}
+          <IconButton
+            onClick={() => setShowAddSheet(true)}
+            className="text-white hover:bg-white/20"
+            aria-label={t.shopping.addItem}
+          >
+            <Plus size={24} />
+          </IconButton>
         </div>
 
         {/* Progress bar */}
@@ -193,6 +263,7 @@ export default function ShoppingModePage() {
                           vibrate(20);
                           markOutOfStock(item.id);
                         }}
+                        onMore={() => setActionItemId(item.id)}
                       />
                     ))}
                   </div>
@@ -216,6 +287,7 @@ export default function ShoppingModePage() {
                       item={item}
                       onToggleChecked={() => toggleItemChecked(item.id)}
                       onMarkOutOfStock={() => {}}
+                      onMore={() => setActionItemId(item.id)}
                     />
                   ))}
                 </div>
@@ -302,6 +374,94 @@ export default function ShoppingModePage() {
           </div>
         )}
       </main>
+
+      {/* Add while shopping */}
+      <Modal
+        isOpen={showAddSheet}
+        onClose={() => setShowAddSheet(false)}
+        title={t.shopping.addItem}
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-[var(--muted-foreground)]">{t.shopping.remembered}</p>
+          <SmartInput
+            onAddItem={handleAddWhileShopping}
+            onAddMultiple={handleAddManyWhileShopping}
+            onClose={() => setShowAddSheet(false)}
+            autoFocus
+          />
+          <FrequentItems
+            existingNames={pendingItems.map((item) => item.name)}
+            onAdd={handleAddFrequentWhileShopping}
+          />
+        </div>
+      </Modal>
+
+      {/* One item's actions */}
+      <Modal
+        isOpen={!!actionItem}
+        onClose={() => setActionItemId(null)}
+        title={actionItem?.name}
+      >
+        {actionItem && (
+          <div className="space-y-4">
+            <div>
+              <p className="text-sm font-medium text-[var(--foreground)] mb-2">
+                {t.list.quantity}
+              </p>
+              {/* Saved as you change it - no Save button to hunt for */}
+              <QuantityEditor
+                quantity={actionItem.quantity}
+                unit={actionItem.unit}
+                categoryId={actionItem.categoryId}
+                onQuantityChange={(quantity) => updateItem(actionItem.id, { quantity })}
+                onUnitChange={(unit) => updateItem(actionItem.id, { unit })}
+              />
+            </div>
+
+            <div className="space-y-2 pt-2">
+              {actionItem.status === 'pending' ? (
+                <Button
+                  variant="secondary"
+                  className="w-full text-orange-500"
+                  leftIcon={<AlertTriangle size={18} />}
+                  onClick={() => {
+                    vibrate(20);
+                    markOutOfStock(actionItem.id);
+                    setActionItemId(null);
+                  }}
+                >
+                  {t.list.markOutOfStock}
+                </Button>
+              ) : (
+                <Button
+                  variant="secondary"
+                  className="w-full"
+                  leftIcon={<RotateCcw size={18} />}
+                  onClick={() => {
+                    updateItem(actionItem.id, { status: 'pending', checkedAt: undefined });
+                    setActionItemId(null);
+                  }}
+                >
+                  {t.shopping.backToList}
+                </Button>
+              )}
+
+              <Button
+                variant="ghost"
+                className="w-full text-red-500"
+                leftIcon={<Trash2 size={18} />}
+                onClick={() => {
+                  vibrate(20);
+                  removeItem(actionItem.id);
+                  setActionItemId(null);
+                }}
+              >
+                {t.list.deleteItem}
+              </Button>
+            </div>
+          </div>
+        )}
+      </Modal>
 
       {/* Bottom action - sticky footer */}
       {!allDone && (

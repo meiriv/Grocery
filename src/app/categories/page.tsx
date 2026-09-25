@@ -125,7 +125,7 @@ export default function CategoriesPage() {
       </header>
 
       {/* Content */}
-      <main className="px-4 pb-safe">
+      <main className="px-4 pb-fab">
         <div className="py-4 space-y-3">
           <div>
             <h2 className="text-sm font-semibold text-[var(--muted-foreground)] uppercase tracking-wider">

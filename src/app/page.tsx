@@ -30,8 +30,19 @@ export default function HomePage() {
     };
   }, []);
 
+  // The home-screen shortcut ("New List" on a long-press of the app icon)
+  // opens /?action=new-list - go straight to the new-list sheet
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('action') === 'new-list') {
+      setShowNewListModal(true);
+      window.history.replaceState(null, '', window.location.pathname);
+    }
+  }, []);
+
+  // An empty new list opens with the add field ready, so the next tap types
   const handleListCreated = (list: GroceryList) => {
-    router.push(`/list/${list.id}`);
+    router.push(list.items.length === 0 ? `/list/${list.id}?add=1` : `/list/${list.id}`);
   };
 
   const handleDeleteList = () => {
@@ -74,7 +85,7 @@ export default function HomePage() {
       </header>
 
       {/* Content */}
-      <main className="px-4 pb-safe">
+      <main className="px-4 pb-fab">
         {isLoading ? (
           <div className="flex items-center justify-center py-20">
             <div className="w-8 h-8 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { List, Heart, Copy } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTranslation } from '@/hooks/useTranslation';
@@ -23,7 +23,7 @@ interface NewListModalProps {
 }
 
 export function NewListModal({ isOpen, onClose, onCreateList }: NewListModalProps) {
-  const { t, language } = useTranslation();
+  const { t, language, interpolate } = useTranslation();
   const { favorites, count: favoritesCount } = useFavorites();
   const { lists, createList } = useGroceryLists();
   
@@ -32,13 +32,25 @@ export function NewListModal({ isOpen, onClose, onCreateList }: NewListModalProp
   const [selectedListId, setSelectedListId] = useState('');
   const [showFavoritesPicker, setShowFavoritesPicker] = useState(false);
   const [selectedFavorites, setSelectedFavorites] = useState<FavoriteItem[]>([]);
-  const [error, setError] = useState('');
 
-  const handleCreate = () => {
-    if (!name.trim()) {
-      setError(t.newList.listName);
-      return;
-    }
+  // A dated default name means a list can be started with a single tap -
+  // naming it is optional, not a gate in front of the Create button
+  const defaultName = () =>
+    interpolate(t.newList.defaultName, {
+      date: new Date().toLocaleDateString(language === 'he' ? 'he-IL' : 'en-US', {
+        month: 'short',
+        day: 'numeric',
+      }),
+    });
+
+  useEffect(() => {
+    if (isOpen) setName(defaultName());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen]);
+
+  const handleCreate = (event?: React.FormEvent) => {
+    event?.preventDefault();
+    const listName = name.trim() || defaultName();
 
     let initialItems: Array<{
       name: string;
@@ -66,7 +78,7 @@ export function NewListModal({ isOpen, onClose, onCreateList }: NewListModalProp
       }
     }
 
-    const newList = createList(name.trim(), initialItems);
+    const newList = createList(listName, initialItems);
     onCreateList(newList);
     handleClose();
   };
@@ -76,7 +88,6 @@ export function NewListModal({ isOpen, onClose, onCreateList }: NewListModalProp
     setStartOption('empty');
     setSelectedListId('');
     setSelectedFavorites([]);
-    setError('');
     onClose();
   };
 
@@ -93,18 +104,18 @@ export function NewListModal({ isOpen, onClose, onCreateList }: NewListModalProp
   return (
     <>
       <Modal isOpen={isOpen} onClose={handleClose} title={t.newList.title}>
-        <div className="space-y-6">
-          {/* List name */}
+        {/* A form, so the keyboard's Go key creates the list */}
+        <form className="space-y-6" onSubmit={handleCreate}>
+          {/* List name - prefilled, and selected on focus so typing replaces it.
+              Not auto-focused: popping the keyboard would hide the Create
+              button for someone happy with the default name. */}
           <Input
             label={t.newList.listName}
             value={name}
-            onChange={(e) => {
-              setName(e.target.value);
-              setError('');
-            }}
+            onChange={(e) => setName(e.target.value)}
+            onFocus={(e) => e.currentTarget.select()}
             placeholder={t.newList.listNamePlaceholder}
-            error={error}
-            autoFocus
+            enterKeyHint="go"
           />
 
           {/* Start options */}
@@ -171,6 +182,7 @@ export function NewListModal({ isOpen, onClose, onCreateList }: NewListModalProp
                           {selectedFavorites.length} {t.common.items} selected
                         </span>
                         <Button
+                          type="button"
                           variant="ghost"
                           size="sm"
                           onClick={(e) => {
@@ -183,6 +195,7 @@ export function NewListModal({ isOpen, onClose, onCreateList }: NewListModalProp
                       </div>
                     ) : (
                       <Button
+                        type="button"
                         variant="secondary"
                         size="sm"
                         className="w-full"
@@ -235,19 +248,14 @@ export function NewListModal({ isOpen, onClose, onCreateList }: NewListModalProp
 
           {/* Actions */}
           <div className="flex gap-3">
-            <Button variant="secondary" className="flex-1" onClick={handleClose}>
+            <Button type="button" variant="secondary" className="flex-1" onClick={handleClose}>
               {t.common.cancel}
             </Button>
-            <Button
-              variant="primary"
-              className="flex-1"
-              onClick={handleCreate}
-              disabled={!name.trim()}
-            >
+            <Button type="submit" variant="primary" className="flex-1">
               {t.newList.create}
             </Button>
           </div>
-        </div>
+        </form>
       </Modal>
 
       {/* Favorites picker modal */}

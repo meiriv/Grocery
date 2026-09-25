@@ -61,10 +61,13 @@ async function createTestList(page: Page, listName: string = 'Test Shopping List
 // a textarea in multi-line mode (the default) and as a text input otherwise, so
 // the helper works with whichever one is on screen.
 async function addItemsViaInput(page: Page, text: string) {
-  const fabButton = page.locator('button.fixed, button[class*="fixed"]').first();
-  await fabButton.click();
-
   const field = page.locator('form textarea, form input[type="text"]').first();
+
+  // A newly created list opens with the field already showing; the + button
+  // toggles it, so only press it when the field is closed
+  if (!(await field.isVisible())) {
+    await page.locator('button.fixed, button[class*="fixed"]').first().click();
+  }
   await field.waitFor({ state: 'visible' });
   await field.fill(text);
 

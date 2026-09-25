@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Check, AlertTriangle, Trash2, Edit3 } from 'lucide-react';
+import { Check, AlertTriangle, Trash2, Edit3, MoreHorizontal } from 'lucide-react';
 import { cn, vibrate } from '@/lib/utils';
 import { useTranslation } from '@/hooks/useTranslation';
 import { useSwipeGesture } from '@/hooks/useSwipeGesture';
@@ -203,13 +203,20 @@ interface ShoppingItemProps {
   item: GroceryItemType;
   onToggleChecked: () => void;
   onMarkOutOfStock: () => void;
+  /** Opens the item's actions (quantity, out of stock, delete) */
+  onMore?: () => void;
 }
+
+// Touches on the actions button must not reach the row: they would toggle it
+const stopTouch = (e: React.TouchEvent) => e.stopPropagation();
 
 export function ShoppingItem({
   item,
   onToggleChecked,
   onMarkOutOfStock,
+  onMore,
 }: ShoppingItemProps) {
+  const { t, interpolate } = useTranslation();
   const { getCategory } = useCategories();
   const category = getCategory(item.categoryId);
 
@@ -228,30 +235,21 @@ export function ShoppingItem({
     disabled: false, // Allow interaction even when checked (to uncheck)
   });
 
+  // Swipes are tracked on the whole card; the click (mouse / keyboard) only on
+  // the checkbox area, so the actions button beside it stays independent
+  const { onClick: handleTapClick, ...swipeHandlers } = handlers;
+
   const isChecked = item.status === 'checked';
   const isOutOfStock = item.status === 'out_of_stock';
 
   return (
     <div
-      {...handlers}
-      role="checkbox"
-      aria-checked={isChecked}
-      tabIndex={0}
-      onKeyDown={(e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          vibrate(15);
-          onToggleChecked();
-        }
-      }}
+      {...swipeHandlers}
       className={cn(
-        'relative flex items-center gap-4 p-5',
+        'relative flex items-stretch',
         'bg-[var(--card)] rounded-2xl',
         'border-2 transition-all duration-200',
-        'cursor-pointer select-none',
-        'min-h-[72px]',
-        'focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500',
-        'active:scale-[0.98]', // Visual feedback on press
+        'select-none min-h-[72px]',
         isChecked
           ? 'border-emerald-500/30 bg-emerald-500/10 opacity-60'
           : isOutOfStock
@@ -262,55 +260,96 @@ export function ShoppingItem({
         transform: `translateX(${state.translateX}px)`,
       }}
     >
-      {/* Large checkbox */}
       <div
+        role="checkbox"
+        aria-checked={isChecked}
+        tabIndex={0}
+        onClick={handleTapClick}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            vibrate(15);
+            onToggleChecked();
+          }
+        }}
         className={cn(
-          'w-8 h-8 rounded-full border-3 flex-shrink-0',
-          'flex items-center justify-center',
-          'transition-all duration-200',
-          isChecked
-            ? 'bg-emerald-500 border-emerald-500'
-            : isOutOfStock
-            ? 'border-orange-500'
-            : 'border-[var(--muted-foreground)]'
+          'flex-1 min-w-0 flex items-center gap-4 p-5 rounded-2xl',
+          'cursor-pointer',
+          'focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500'
         )}
       >
-        {isChecked && <Check size={20} className="text-white" strokeWidth={3} />}
-        {isOutOfStock && <AlertTriangle size={16} className="text-orange-500" />}
-      </div>
-
-      {/* Item info */}
-      <div className="flex-1 min-w-0">
-        <span
+        {/* Large checkbox */}
+        <div
           className={cn(
-            'text-lg font-semibold',
+            'w-8 h-8 rounded-full border-[3px] flex-shrink-0',
+            'flex items-center justify-center',
+            'transition-all duration-200',
             isChecked
-              ? 'line-through text-[var(--muted-foreground)]'
-              : 'text-[var(--foreground)]'
+              ? 'bg-emerald-500 border-emerald-500'
+              : isOutOfStock
+              ? 'border-orange-500'
+              : 'border-[var(--muted-foreground)]'
           )}
         >
-          {item.name}
-        </span>
-        <div className="flex items-center gap-2 mt-1">
-          <QuantityDisplay quantity={item.quantity} unit={item.unit} />
-          {category && (
-            <span
-              className={cn(
-                'w-2 h-2 rounded-full',
-                category.color
-              )}
-            />
-          )}
+          {isChecked && <Check size={20} className="text-white" strokeWidth={3} />}
+          {isOutOfStock && <AlertTriangle size={16} className="text-orange-500" />}
+        </div>
+
+        {/* Item info */}
+        <div className="flex-1 min-w-0">
+          <span
+            className={cn(
+              'text-lg font-semibold break-words',
+              isChecked
+                ? 'line-through text-[var(--muted-foreground)]'
+                : 'text-[var(--foreground)]'
+            )}
+          >
+            {item.name}
+          </span>
+          <div className="flex items-center gap-2 mt-1">
+            <QuantityDisplay quantity={item.quantity} unit={item.unit} />
+            {category && (
+              <span
+                className={cn(
+                  'w-2 h-2 rounded-full',
+                  category.color
+                )}
+              />
+            )}
+          </div>
         </div>
       </div>
 
+      {/* Actions: quantity, out of stock, delete - without leaving the aisle */}
+      {onMore && (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            vibrate(10);
+            onMore();
+          }}
+          onTouchStart={stopTouch}
+          onTouchMove={stopTouch}
+          onTouchEnd={stopTouch}
+          className={cn(
+            'flex-shrink-0 w-14 flex items-center justify-center rounded-e-2xl',
+            'text-[var(--muted-foreground)] hover:text-[var(--foreground)]',
+            'active:bg-[var(--secondary)] transition-colors'
+          )}
+          aria-label={interpolate(t.shopping.itemActions, { name: item.name })}
+        >
+          <MoreHorizontal size={22} />
+        </button>
+      )}
+
       {/* Swipe hint */}
       {!isChecked && !isOutOfStock && state.isDragging && state.progress > 0.3 && (
-        <div className="absolute end-4 text-orange-500">
+        <div className="absolute end-16 top-1/2 -translate-y-1/2 text-orange-500 pointer-events-none">
           <AlertTriangle size={24} />
         </div>
       )}
     </div>
   );
 }
-

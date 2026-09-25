@@ -227,6 +227,12 @@ body {
   padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 4.5rem);
 }
 
+/* Pages with a floating add button: the button sits above the bottom nav, so
+   the last row needs to scroll clear of both or its buttons end up under it */
+.pb-fab {
+  padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 9rem);
+}
+
 /* Modal backdrop */
 .modal-backdrop {
   position: fixed;
