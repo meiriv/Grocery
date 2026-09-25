@@ -2,7 +2,7 @@
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import { ArrowLeft, ShoppingBag, Share2, MoreVertical, Trash2, Edit3, CheckCircle, XCircle, AlertCircle, X, RotateCcw, Sparkles } from 'lucide-react';
+import { ArrowLeft, ShoppingBag, Share2, MoreVertical, Trash2, Edit3, CheckCircle, XCircle, AlertCircle, X, RotateCcw, Sparkles, Undo2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTranslation } from '@/hooks/useTranslation';
 import { useAISettings } from '@/hooks/useSettings';
@@ -40,6 +40,7 @@ export default function ListPage() {
     updateItems,
     increaseItemQuantity,
     removeItem,
+    restoreItem,
     toggleItemChecked,
     markOutOfStock,
     clearChecked,
@@ -62,6 +63,9 @@ export default function ListPage() {
   >(null);
   const [isCategorizingWithAI, setIsCategorizingWithAI] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
+  // Last deleted item and where it was, for Undo
+  const [deletedItem, setDeletedItem] = useState<{ item: GroceryItem; index: number } | null>(null);
+  const undoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const notificationTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Edit item form state
@@ -89,12 +93,33 @@ export default function ListPage() {
     }
   }, []);
 
-  // Clear the pending timer when leaving the page
+  // Clear the pending timers when leaving the page
   useEffect(() => {
     return () => {
       if (notificationTimer.current) clearTimeout(notificationTimer.current);
+      if (undoTimer.current) clearTimeout(undoTimer.current);
     };
   }, []);
+
+  // Deleting - by swipe or from the edit sheet - can be undone for a few
+  // seconds. A swipe is easy to trigger by accident and a delete is final.
+  const handleDeleteItem = useCallback((itemId: string) => {
+    const index = list?.items.findIndex((item) => item.id === itemId) ?? -1;
+    if (!list || index < 0) return;
+    
+    const item = list.items[index];
+    removeItem(itemId);
+    setDeletedItem({ item, index });
+    
+    if (undoTimer.current) clearTimeout(undoTimer.current);
+    undoTimer.current = setTimeout(() => setDeletedItem(null), 6000);
+  }, [list, removeItem]);
+
+  const handleUndoDelete = () => {
+    if (undoTimer.current) clearTimeout(undoTimer.current);
+    if (deletedItem) restoreItem(deletedItem.item, deletedItem.index);
+    setDeletedItem(null);
+  };
 
   // Items are categorized instantly with keyword matching. When AI
   // categorization is switched on, refine those guesses in the background and
@@ -413,6 +438,24 @@ export default function ListPage() {
         </div>
       )}
 
+      {/* Undo after deleting an item */}
+      {deletedItem && (
+        <div className="fixed bottom-[calc(env(safe-area-inset-bottom,0px)+5rem)] left-4 right-20 z-50 flex animate-fade-in">
+          <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-[var(--card)] border border-[var(--border)] shadow-lg w-full">
+            <span className="flex-1 min-w-0 text-sm text-[var(--foreground)] truncate">
+              {interpolate(t.list.itemDeleted, { name: deletedItem.item.name })}
+            </span>
+            <button
+              onClick={handleUndoDelete}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[var(--secondary)] text-sm font-semibold text-emerald-500 hover:bg-[var(--accent)] transition-colors"
+            >
+              <Undo2 size={16} />
+              {t.common.undo}
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* AI could not answer - the items are still there, categorized by keyword */}
       {aiError && (
         <div className="fixed bottom-24 left-4 right-4 z-40 flex justify-center">
@@ -483,7 +526,7 @@ export default function ListPage() {
                 items={pendingItems}
                 onToggleChecked={toggleItemChecked}
                 onMarkOutOfStock={markOutOfStock}
-                onDelete={removeItem}
+                onDelete={handleDeleteItem}
                 onEdit={handleEditItem}
               />
             )}
@@ -501,7 +544,7 @@ export default function ListPage() {
                   items={outOfStockItems}
                   onToggleChecked={toggleItemChecked}
                   onMarkOutOfStock={markOutOfStock}
-                  onDelete={removeItem}
+                  onDelete={handleDeleteItem}
                   onEdit={handleEditItem}
                   collapsible={false}
                 />
@@ -522,7 +565,7 @@ export default function ListPage() {
                   items={checkedItems}
                   onToggleChecked={toggleItemChecked}
                   onMarkOutOfStock={markOutOfStock}
-                  onDelete={removeItem}
+                  onDelete={handleDeleteItem}
                   collapsible={false}
                 />
               </div>
@@ -597,7 +640,7 @@ export default function ListPage() {
             leftIcon={<Trash2 size={18} className="lucide-trash-2" />}
             onClick={() => {
               if (editingItem) {
-                removeItem(editingItem.id);
+                handleDeleteItem(editingItem.id);
                 setEditingItem(null);
               }
             }}

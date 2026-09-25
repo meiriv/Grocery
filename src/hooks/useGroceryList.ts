@@ -207,6 +207,17 @@ export function useGroceryList(listId: string | null) {
     }));
   }, [persistList]);
 
+  // Put a deleted item back where it was (the undo after a delete)
+  const restoreItem = useCallback((item: GroceryItem, index: number) => {
+    persistList(current => {
+      if (current.items.some(existing => existing.id === item.id)) return current;
+      
+      const items = [...current.items];
+      items.splice(Math.min(Math.max(index, 0), items.length), 0, item);
+      return { ...current, items, updatedAt: new Date() };
+    });
+  }, [persistList]);
+
   // Toggle item checked status
   const toggleItemChecked = useCallback((itemId: string) => {
     persistList(current => ({
@@ -308,6 +319,7 @@ export function useGroceryList(listId: string | null) {
     updateItems,
     increaseItemQuantity,
     removeItem,
+    restoreItem,
     toggleItemChecked,
     markOutOfStock,
     clearChecked,
