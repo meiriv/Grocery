@@ -519,7 +519,7 @@ test.describe('Shopping Mode on a touch device', () => {
   // browser synthesizes afterwards), like a real phone does.
   test.use({ hasTouch: true, viewport: { width: 393, height: 851 } });
 
-  test('tapping an item checks it off and it stays checked', async ({ page }) => {
+  test('a tap does not tick an item off - that takes a swipe', async ({ page }) => {
     await createTestList(page, 'Touch Shopping List');
     await addItemsViaInput(page, 'Apples\nBananas');
     await waitForAppReady(page);
@@ -531,12 +531,11 @@ test.describe('Shopping Mode on a touch device', () => {
     const item = page.locator('[role="checkbox"]').filter({ hasText: 'Apples' }).first();
     await expect(item).toHaveAttribute('aria-checked', 'false');
 
-    // A tap fires touchend AND a synthesized click - the item must toggle once
+    // A stray tap in the aisle used to tick the item off and move it away
     await item.tap();
     await page.waitForTimeout(500);
-
-    await expect(page.getByText(/Checked Items|פריטים שנלקחו/)).toBeVisible();
-    await expect(page.getByText(/1 items left|נותרו 1/)).toBeVisible();
+    await expect(item).toHaveAttribute('aria-checked', 'false');
+    await expect(page.getByText(/2 items left|נותרו 2/)).toBeVisible();
   });
 });
 

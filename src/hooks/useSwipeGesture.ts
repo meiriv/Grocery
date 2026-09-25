@@ -11,6 +11,11 @@ interface SwipeConfig {
   disabled?: boolean;
   /** If true, swipe directions are physical (left = finger moves left), ignoring RTL */
   ignoreRTL?: boolean;
+  /**
+   * When false, a touch tap does nothing - only a deliberate swipe acts. Mouse
+   * clicks and the keyboard still call onTap, since they cannot swipe.
+   */
+  tapOnTouch?: boolean;
 }
 
 interface SwipeState {
@@ -42,6 +47,7 @@ export function useSwipeGesture(config: SwipeConfig) {
     onTap,
     disabled = false,
     ignoreRTL = false,
+    tapOnTouch = true,
   } = config;
   
   const { isRTL } = useRTL();
@@ -61,6 +67,9 @@ export function useSwipeGesture(config: SwipeConfig) {
   const isTapRef = useRef(true);
   const startTimeRef = useRef(0);
   const swipedRef = useRef(false);
+  // Which way this touch is going, decided once on its first real movement.
+  // A gesture that starts as a scroll stays a scroll, however much it drifts.
+  const axisRef = useRef<'x' | 'y' | null>(null);
 
   const handleTouchStart = useCallback((e: React.TouchEvent) => {
     if (disabled) return;
@@ -74,6 +83,7 @@ export function useSwipeGesture(config: SwipeConfig) {
       direction: null,
     });
     isTapRef.current = true;
+    axisRef.current = null;
     startTimeRef.current = Date.now();
   }, [disabled]);
 
@@ -84,15 +94,22 @@ export function useSwipeGesture(config: SwipeConfig) {
     const deltaX = touch.clientX - swipeState.startX;
     const deltaY = touch.clientY - swipeState.startY;
     
-    // If vertical movement is greater, don't handle horizontal swipe
-    if (Math.abs(deltaY) > Math.abs(deltaX) && Math.abs(deltaX) < 10) {
-      return;
+    // Any real movement, in either direction, means this is not a tap. Only
+    // sideways movement used to count, so a quick flick to scroll the list
+    // was read as a tap on the item under the thumb.
+    if (Math.abs(deltaX) > 10 || Math.abs(deltaY) > 10) {
+      isTapRef.current = false;
+      
+      if (axisRef.current === null) {
+        axisRef.current = Math.abs(deltaX) > Math.abs(deltaY) ? 'x' : 'y';
+      }
     }
     
-    // Prevent default to stop scrolling when swiping horizontally
-    if (Math.abs(deltaX) > 10) {
-      e.preventDefault();
-      isTapRef.current = false;
+    // Not moved enough to tell yet, or it is a scroll: leave it to the browser.
+    // (The swipeable elements use touch-action: pan-y, so the browser scrolls
+    // vertically and hands sideways movement to this handler.)
+    if (axisRef.current !== 'x') {
+      return;
     }
     
     // Determine direction (accounting for RTL unless ignoreRTL is true)
@@ -125,8 +142,10 @@ export function useSwipeGesture(config: SwipeConfig) {
     swipedRef.current = false;
     
     // Check if it was a tap (minimal movement and short duration)
-    if (isTapRef.current && Math.abs(deltaX) < 10 && duration < 300) {
-      onTap?.();
+    if (isTapRef.current && duration < 300) {
+      if (tapOnTouch) onTap?.();
+    } else if (axisRef.current !== 'x') {
+      // A scroll, or a press held too long to be a tap: nothing to do
     } else {
       swipedRef.current = true;
       lastSwipeTimestamp = Date.now();
@@ -149,7 +168,7 @@ export function useSwipeGesture(config: SwipeConfig) {
       direction: null,
     });
     setTranslateX(0);
-  }, [disabled, swipeState, threshold, onSwipeLeft, onSwipeRight, onTap, shouldFlip]);
+  }, [disabled, swipeState, threshold, onSwipeLeft, onSwipeRight, onTap, shouldFlip, tapOnTouch]);
 
   // Click handler for pointer devices (mouse, keyboard activation). Clicks that
   // the browser synthesises right after a touch gesture are ignored, otherwise a

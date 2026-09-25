@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { Check, AlertTriangle, Trash2, Edit3, MoreHorizontal } from 'lucide-react';
 import { cn, vibrate } from '@/lib/utils';
 import { useTranslation } from '@/hooks/useTranslation';
@@ -78,8 +78,8 @@ export function GroceryItem({
         {...handlers}
         className={cn(
           'relative flex items-center gap-3 p-4',
-          'bg-[var(--card)]',
-          'transition-transform duration-200',
+          'bg-[var(--card)] touch-pan-y',
+          !state.isDragging && 'transition-transform duration-200',
           compact ? 'py-3' : 'py-4'
         )}
         style={{
@@ -216,14 +216,21 @@ export function ShoppingItem({
   onMarkOutOfStock,
   onMore,
 }: ShoppingItemProps) {
-  const { t, interpolate } = useTranslation();
+  const { t, interpolate, isRTL } = useTranslation();
   const { getCategory } = useCategories();
   const category = getCategory(item.categoryId);
 
-  // The hook fires onTap for touch taps and for mouse clicks, and ignores the
-  // synthetic click that follows a touch - so an item is never toggled twice.
+  // Ticking off needs a deliberate swipe: a tap used to do it, and in a busy
+  // aisle a stray tap - or a quick flick to scroll - made items vanish from
+  // the list. Swipe towards the end of the line (right, or left in Hebrew)
+  // for "got it"; the other way for "out of stock". A mouse click and the
+  // keyboard still tick off, since they cannot swipe.
   const { handlers, state } = useSwipeGesture({
     threshold: 100,
+    onSwipeRight: () => {
+      vibrate(15);
+      onToggleChecked();
+    },
     onSwipeLeft: () => {
       vibrate(20);
       onMarkOutOfStock();
@@ -232,6 +239,7 @@ export function ShoppingItem({
       vibrate(15);
       onToggleChecked();
     },
+    tapOnTouch: false,
     disabled: false, // Allow interaction even when checked (to uncheck)
   });
 
@@ -242,14 +250,64 @@ export function ShoppingItem({
   const isChecked = item.status === 'checked';
   const isOutOfStock = item.status === 'out_of_stock';
 
+  // What letting go would do, so the colour behind the card can say so
+  const pendingAction =
+    state.direction === 'right' ? 'got-it' : state.direction === 'left' ? 'out-of-stock' : null;
+  const willAct = state.progress >= 1;
+
+  // A small buzz at the moment letting go will act - you can feel it without
+  // looking, one-handed in an aisle
+  const armed = useRef(false);
+  useEffect(() => {
+    if (willAct && !armed.current) {
+      armed.current = true;
+      vibrate(10);
+    } else if (!willAct) {
+      armed.current = false;
+    }
+  }, [willAct]);
+
+  // The card moves away from the side the icon should sit on
+  const revealFromLeft = state.translateX > 0;
+
   return (
+    <div className="relative rounded-2xl overflow-hidden">
+      {/* Revealed behind the card while dragging */}
+      {pendingAction && state.translateX !== 0 && (
+        <div
+          aria-hidden="true"
+          className={cn(
+            'absolute inset-0 flex items-center gap-2 px-6 rounded-2xl',
+            'text-white font-semibold transition-colors',
+            revealFromLeft ? 'justify-start' : 'justify-end',
+            pendingAction === 'got-it'
+              ? willAct ? 'bg-emerald-500' : 'bg-emerald-500/40'
+              : willAct ? 'bg-orange-500' : 'bg-orange-500/40'
+          )}
+          dir={isRTL ? 'rtl' : 'ltr'}
+        >
+          {pendingAction === 'got-it' ? (
+            <>
+              <Check size={24} strokeWidth={3} className={cn(willAct && 'scale-125', 'transition-transform')} />
+              <span>{t.shopping.gotIt}</span>
+            </>
+          ) : (
+            <>
+              <AlertTriangle size={22} className={cn(willAct && 'scale-125', 'transition-transform')} />
+              <span>{t.list.outOfStock}</span>
+            </>
+          )}
+        </div>
+      )}
+
     <div
       {...swipeHandlers}
       className={cn(
         'relative flex items-stretch',
         'bg-[var(--card)] rounded-2xl',
-        'border-2 transition-all duration-200',
-        'select-none min-h-[72px]',
+        'border-2',
+        'select-none min-h-[72px] touch-pan-y',
+        !state.isDragging && 'transition-all duration-200',
         isChecked
           ? 'border-emerald-500/30 bg-emerald-500/10 opacity-60'
           : isOutOfStock
@@ -344,12 +402,7 @@ export function ShoppingItem({
         </button>
       )}
 
-      {/* Swipe hint */}
-      {!isChecked && !isOutOfStock && state.isDragging && state.progress > 0.3 && (
-        <div className="absolute end-16 top-1/2 -translate-y-1/2 text-orange-500 pointer-events-none">
-          <AlertTriangle size={24} />
-        </div>
-      )}
+    </div>
     </div>
   );
 }

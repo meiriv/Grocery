@@ -20,8 +20,9 @@ A modern, mobile-first Progressive Web App (PWA) for managing grocery lists with
 - **Item actions** - The **⋯** on each item changes its quantity, marks it out of stock (or brings it back) and deletes it, without leaving shopping mode
 - **Aisle order** - Drag the categories on the Categories screen into the order you walk the store (or focus a handle and use the arrow keys); shopping mode and the list follow that order
 - **One-handed operation** - Large touch targets optimized for in-store use
-- **Tap to check off** - Quick item completion
-- **Swipe gestures** - Swipe left to mark as "Out of Stock" (in the list view, swipe left deletes an item)
+- **Swipe to check off** - Swipe an item right when it is in the trolley, left if it is out of stock (mirrored in Hebrew). A colour appears behind the item and the phone buzzes at the point where letting go will act. A tap does nothing, so a stray touch - or a quick flick to scroll - never ticks anything off by mistake
+- **Scrolling stays scrolling** - A gesture that starts as a scroll is never read as a swipe, however much it drifts sideways
+- **Undo deletes** - In the list view, swipe left to delete an item; an Undo appears for a few seconds and puts it back where it was
 - **Progress tracking** - Visual progress bar shows completion status
 - **Picked items section** - Easily restore accidentally checked items
 

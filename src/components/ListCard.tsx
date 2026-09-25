@@ -60,8 +60,8 @@ export function ListCard({
         {...handlers}
         style={{ transform: `translateX(${state.translateX}px)` }}
         className={cn(
-          'relative bg-[var(--card)] rounded-2xl border border-[var(--border)]',
-          'transition-all duration-200',
+          'relative bg-[var(--card)] rounded-2xl border border-[var(--border)] touch-pan-y',
+          !state.isDragging && 'transition-all duration-200',
           'hover:border-[var(--muted-foreground)]'
         )}
       >
